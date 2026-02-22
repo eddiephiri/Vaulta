@@ -1,0 +1,146 @@
+import { useState } from 'react';
+import { Plus, TrendingUp } from 'lucide-react';
+import { PageHeader } from '../components/PageHeader';
+import { useIncome } from '../hooks/useIncome';
+import { useVehicles } from '../hooks/useVehicles';
+import { AddIncomeModal } from '../components/AddIncomeModal';
+
+const SOURCE_LABELS: Record<string, string> = {
+    yango: 'Yango',
+    rental: 'Rental',
+    other: 'Other',
+};
+
+export function Income() {
+    const [vehicleFilter, setVehicleFilter] = useState('');
+    const [sourceFilter, setSourceFilter] = useState('');
+    const [monthFilter, setMonthFilter] = useState('');
+    const [showModal, setShowModal] = useState(false);
+
+    const { vehicles } = useVehicles();
+    const { records, loading, error, totalToday, totalThisWeek, totalThisMonth, refetch } =
+        useIncome(vehicleFilter || undefined);
+
+    const filtered = records.filter(r => {
+        if (sourceFilter && r.source !== sourceFilter) return false;
+        if (monthFilter && !r.date.startsWith(monthFilter)) return false;
+        return true;
+    });
+
+    const fmt = (n: number) =>
+        n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    return (
+        <div>
+            <PageHeader
+                title="Income"
+                subtitle="Track daily and monthly earnings per vehicle in ZMW"
+                action={
+                    <button
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                        style={{ background: 'var(--ff-accent)', color: 'white' }}
+                        onClick={() => setShowModal(true)}
+                    >
+                        <Plus size={16} />
+                        Add Income
+                    </button>
+                }
+            />
+
+            {error && (
+                <div className="mb-4 p-4 rounded-lg text-sm"
+                    style={{ background: '#ef444420', color: '#ef4444', border: '1px solid #ef444440' }}>
+                    {error}
+                </div>
+            )}
+
+            {/* Summary strip */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                {[
+                    { label: 'Today', value: loading ? '—' : `ZMW ${fmt(totalToday)}` },
+                    { label: 'This Week', value: loading ? '—' : `ZMW ${fmt(totalThisWeek)}` },
+                    { label: 'This Month', value: loading ? '—' : `ZMW ${fmt(totalThisMonth)}` },
+                ].map(s => (
+                    <div key={s.label} className="rounded-xl p-4"
+                        style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                        <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--ff-text-muted)' }}>
+                            {s.label}
+                        </p>
+                        <p className="text-xl font-bold" style={{ color: '#22c55e' }}>{s.value}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Filter bar */}
+            <div className="flex flex-wrap gap-3 mb-6 p-4 rounded-xl"
+                style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                <select value={vehicleFilter} onChange={e => setVehicleFilter(e.target.value)}
+                    className="text-sm px-3 py-2 rounded-lg"
+                    style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}>
+                    <option value="">All Vehicles</option>
+                    {vehicles.map(v => (
+                        <option key={v.id} value={v.id}>{v.plate} — {v.make} {v.model}</option>
+                    ))}
+                </select>
+                <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
+                    className="text-sm px-3 py-2 rounded-lg"
+                    style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}>
+                    <option value="">All Sources</option>
+                    {Object.entries(SOURCE_LABELS).map(([val, label]) => (
+                        <option key={val} value={val}>{label}</option>
+                    ))}
+                </select>
+                <input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
+                    className="text-sm px-3 py-2 rounded-lg"
+                    style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }} />
+            </div>
+
+            {loading ? (
+                <div className="flex items-center justify-center h-36">
+                    <p style={{ color: 'var(--ff-text-muted)' }}>Loading income records…</p>
+                </div>
+            ) : filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-36 rounded-xl"
+                    style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                    <TrendingUp size={36} style={{ color: 'var(--ff-border)' }} className="mb-3" />
+                    <p className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
+                        No income records yet. Add your first entry above.
+                    </p>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {filtered.map(r => (
+                        <div key={r.id} className="flex items-center justify-between rounded-xl px-5 py-4"
+                            style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                            <div>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                        style={{ background: '#22c55e20', color: '#22c55e' }}>
+                                        {SOURCE_LABELS[r.source] ?? r.source}
+                                    </span>
+                                    {r.reference && (
+                                        <span className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>#{r.reference}</span>
+                                    )}
+                                </div>
+                                <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>
+                                    {r.vehicle?.plate} — {r.vehicle?.make} {r.vehicle?.model} · {r.date}
+                                </p>
+                                {r.notes && <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>{r.notes}</p>}
+                            </div>
+                            <p className="font-bold text-base flex-shrink-0 ml-4" style={{ color: '#22c55e' }}>
+                                ZMW {fmt(Number(r.amount_zmw))}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <AddIncomeModal
+                open={showModal}
+                onClose={() => setShowModal(false)}
+                onSuccess={refetch}
+                vehicles={vehicles}
+            />
+        </div>
+    );
+}

@@ -1,0 +1,108 @@
+import { useState } from 'react';
+import { Plus, Car } from 'lucide-react';
+import { PageHeader } from '../components/PageHeader';
+import { useVehicles } from '../hooks/useVehicles';
+import { AddVehicleModal } from '../components/AddVehicleModal';
+
+const statusColors: Record<string, { bg: string; text: string }> = {
+    active: { bg: '#22c55e20', text: '#22c55e' },
+    inactive: { bg: '#94a3b820', text: '#94a3b8' },
+    maintenance: { bg: '#f59e0b20', text: '#f59e0b' },
+};
+
+export function Vehicles() {
+    const [showModal, setShowModal] = useState(false);
+    const { vehicles, loading, error, refetch } = useVehicles();
+
+    return (
+        <div>
+            <PageHeader
+                title="Vehicles"
+                subtitle="Manage your fleet of up to 5 vehicles"
+                action={
+                    <button
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        style={{ background: 'var(--ff-accent)', color: 'white' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--ff-accent-hover)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'var(--ff-accent)')}
+                        onClick={() => setShowModal(true)}
+                    >
+                        <Plus size={16} />
+                        Add Vehicle
+                    </button>
+                }
+            />
+
+            {error && (
+                <div
+                    className="mb-4 p-4 rounded-lg text-sm"
+                    style={{ background: '#ef444420', color: '#ef4444', border: '1px solid #ef444440' }}
+                >
+                    {error}
+                </div>
+            )}
+
+            {loading ? (
+                <div className="flex items-center justify-center h-48">
+                    <p style={{ color: 'var(--ff-text-muted)' }}>Loading vehicles…</p>
+                </div>
+            ) : vehicles.length === 0 ? (
+                <div
+                    className="flex flex-col items-center justify-center h-48 rounded-xl"
+                    style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}
+                >
+                    <Car size={40} style={{ color: 'var(--ff-border)' }} className="mb-3" />
+                    <p className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
+                        No vehicles yet. Click "Add Vehicle" to get started.
+                    </p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {vehicles.map(v => {
+                        const sc = statusColors[v.status] ?? statusColors.inactive;
+                        return (
+                            <div
+                                key={v.id}
+                                className="rounded-xl p-5 transition-transform hover:-translate-y-0.5 cursor-pointer"
+                                style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}
+                            >
+                                <div className="flex items-start justify-between mb-3">
+                                    <div>
+                                        <p className="font-bold text-lg" style={{ color: 'var(--ff-text-primary)' }}>
+                                            {v.plate}
+                                        </p>
+                                        <p className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
+                                            {v.year} {v.make} {v.model}
+                                        </p>
+                                    </div>
+                                    <span
+                                        className="text-xs px-2.5 py-1 rounded-full font-medium capitalize"
+                                        style={{ background: sc.bg, color: sc.text }}
+                                    >
+                                        {v.status}
+                                    </span>
+                                </div>
+                                <div className="flex gap-4 mt-3 pt-3" style={{ borderTop: '1px solid var(--ff-border)' }}>
+                                    <div>
+                                        <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>Color</p>
+                                        <p className="text-sm font-medium capitalize" style={{ color: 'var(--ff-text-primary)' }}>{v.color}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>Odometer</p>
+                                        <p className="text-sm font-medium" style={{ color: 'var(--ff-text-primary)' }}>{v.odometer_km.toLocaleString()} km</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            <AddVehicleModal
+                open={showModal}
+                onClose={() => setShowModal(false)}
+                onSuccess={refetch}
+            />
+        </div>
+    );
+}

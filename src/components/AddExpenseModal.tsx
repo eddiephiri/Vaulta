@@ -1,0 +1,221 @@
+import { useState, useEffect } from 'react';
+import type { FormEvent } from 'react';
+import { X } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import type { Vehicle, ExpenseCategory } from '../types';
+
+interface AddExpenseModalProps {
+    open: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+    vehicles: Vehicle[];
+}
+
+const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
+    { value: 'fuel', label: 'Fuel' },
+    { value: 'service', label: 'Service / Maintenance' },
+    { value: 'tyre', label: 'Tyre' },
+    { value: 'licensing', label: 'Licensing' },
+    { value: 'insurance', label: 'Insurance' },
+    { value: 'repairs', label: 'Repairs' },
+    { value: 'wash', label: 'Car Wash' },
+    { value: 'other', label: 'Other' },
+];
+
+const FUEL_STATIONS = [
+    'Total', 'Puma', 'Engen', 'Kobil', 'Zen', 'Moil', 'Oil Libya', 'Other',
+];
+
+const INPUT_STYLE = {
+    background: 'var(--ff-navy)',
+    color: 'var(--ff-text-primary)',
+    border: '1px solid var(--ff-border)',
+    borderRadius: 8,
+    padding: '8px 12px',
+    fontSize: 14,
+    width: '100%',
+    outline: 'none',
+    boxSizing: 'border-box',
+} as const;
+
+const LABEL_STYLE = {
+    display: 'block',
+    fontSize: 12,
+    color: 'var(--ff-text-muted)',
+    marginBottom: 4,
+} as const;
+
+export function AddExpenseModal({ open, onClose, onSuccess, vehicles }: AddExpenseModalProps) {
+    const [form, setForm] = useState({
+        vehicle_id: '',
+        date: new Date().toISOString().slice(0, 10),
+        amount_zmw: '',
+        category: 'fuel' as ExpenseCategory,
+        description: '',
+        descriptionOther: '',
+        notes: '',
+    });
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (open) {
+            setForm({
+                vehicle_id: vehicles[0]?.id ?? '',
+                date: new Date().toISOString().slice(0, 10),
+                amount_zmw: '',
+                category: 'fuel',
+                description: '',
+                descriptionOther: '',
+                notes: '',
+            });
+            setError(null);
+        }
+    }, [open, vehicles]);
+
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [onClose]);
+
+    if (!open) return null;
+
+    const set = (field: keyof typeof form) =>
+        (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+            setForm(prev => ({ ...prev, [field]: e.target.value }));
+
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        setError(null);
+
+        const resolvedDesc = form.description === 'Other'
+            ? form.descriptionOther.trim()
+            : form.description.trim();
+
+        if (!form.vehicle_id) { setError('Please select a vehicle.'); return; }
+        if (!form.amount_zmw || isNaN(Number(form.amount_zmw)) || Number(form.amount_zmw) <= 0) {
+            setError('Please enter a valid amount.'); return;
+        }
+
+        setSubmitting(true);
+        const { error: supaErr } = await supabase.from('expenses').insert({
+            vehicle_id: form.vehicle_id,
+            date: form.date,
+            amount_zmw: Number(form.amount_zmw),
+            category: form.category,
+            description: resolvedDesc || null,
+            notes: form.notes.trim() || null,
+        });
+        setSubmitting(false);
+
+        if (supaErr) { setError(supaErr.message); }
+        else { onSuccess(); onClose(); }
+    };
+
+    // Show fuel station dropdown when category is fuel
+    const isFuel = form.category === 'fuel';
+
+    return (
+        <div onClick={onClose} style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 16,
+        }}>
+            <div onClick={e => e.stopPropagation()} style={{
+                background: 'var(--ff-surface)',
+                border: '1px solid var(--ff-border)',
+                borderRadius: 16, width: '100%', maxWidth: 460, padding: 28,
+                boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+                maxHeight: '90vh', overflowY: 'auto',
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>Add Expense</h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ff-text-muted)', padding: 4 }}>
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {error && (
+                    <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: '#ef444420', color: '#ef4444', border: '1px solid #ef444440', fontSize: 13 }}>
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {/* Vehicle */}
+                    <div>
+                        <label style={LABEL_STYLE}>Vehicle *</label>
+                        <select style={INPUT_STYLE} value={form.vehicle_id} onChange={set('vehicle_id')}>
+                            {vehicles.length === 0
+                                ? <option value="">No vehicles registered yet</option>
+                                : vehicles.map(v => <option key={v.id} value={v.id}>{v.plate} — {v.make} {v.model}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Date / Category */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                            <label style={LABEL_STYLE}>Date *</label>
+                            <input type="date" style={INPUT_STYLE} value={form.date} onChange={set('date')} />
+                        </div>
+                        <div>
+                            <label style={LABEL_STYLE}>Category *</label>
+                            <select style={INPUT_STYLE} value={form.category} onChange={set('category')}>
+                                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Description — context-sensitive */}
+                    <div>
+                        <label style={LABEL_STYLE}>{isFuel ? 'Fuel Station' : 'Description'}</label>
+                        {isFuel ? (
+                            <>
+                                <select style={INPUT_STYLE} value={form.description} onChange={set('description')}>
+                                    <option value="">— Select station —</option>
+                                    {FUEL_STATIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                                {form.description === 'Other' && (
+                                    <input style={{ ...INPUT_STYLE, marginTop: 8 }} placeholder="Enter station name"
+                                        value={form.descriptionOther} onChange={set('descriptionOther')} />
+                                )}
+                            </>
+                        ) : (
+                            <input style={INPUT_STYLE} placeholder="Optional description"
+                                value={form.description} onChange={set('description')} />
+                        )}
+                    </div>
+
+                    {/* Amount */}
+                    <div>
+                        <label style={LABEL_STYLE}>Amount (ZMW) *</label>
+                        <input type="number" min="0.01" step="0.01" style={INPUT_STYLE} placeholder="0.00"
+                            value={form.amount_zmw} onChange={set('amount_zmw')} autoFocus />
+                    </div>
+
+                    {/* Notes */}
+                    <div>
+                        <label style={LABEL_STYLE}>Notes</label>
+                        <textarea rows={2} style={{ ...INPUT_STYLE, resize: 'vertical' } as React.CSSProperties}
+                            placeholder="Any additional notes…" value={form.notes} onChange={set('notes')} />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                        <button type="button" onClick={onClose} style={{
+                            flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
+                            background: 'var(--ff-navy)', color: 'var(--ff-text-muted)',
+                            border: '1px solid var(--ff-border)', cursor: 'pointer',
+                        }}>Cancel</button>
+                        <button type="submit" disabled={submitting} style={{
+                            flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
+                            fontWeight: 600, background: submitting ? '#334155' : '#ef4444',
+                            color: 'white', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
+                        }}>{submitting ? 'Saving…' : 'Add Expense'}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}

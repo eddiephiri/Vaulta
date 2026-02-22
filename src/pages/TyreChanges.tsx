@@ -1,0 +1,143 @@
+import { useState } from 'react';
+import { Plus, CircleDot } from 'lucide-react';
+import { PageHeader } from '../components/PageHeader';
+import { useTyreChanges } from '../hooks/useTyreChanges';
+import { useVehicles } from '../hooks/useVehicles';
+import { AddTyreModal } from '../components/AddTyreModal';
+
+const POSITION_LABELS: Record<string, string> = {
+    front_left: 'Front Left',
+    front_right: 'Front Right',
+    rear_left: 'Rear Left',
+    rear_right: 'Rear Right',
+    spare: 'Spare',
+};
+
+export function TyreChanges() {
+    const [vehicleFilter, setVehicleFilter] = useState('');
+    const [positionFilter, setPositionFilter] = useState('');
+    const [showModal, setShowModal] = useState(false);
+
+    const { vehicles } = useVehicles();
+    const { records, loading, error, refetch } = useTyreChanges(vehicleFilter || undefined);
+
+    const filtered = positionFilter
+        ? records.filter(r => r.position === positionFilter)
+        : records;
+
+    const fmt = (n: number) =>
+        n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    return (
+        <div>
+            <PageHeader
+                title="Tyre Changes"
+                subtitle="Record and track tyre replacements per vehicle"
+                action={
+                    <button
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                        style={{ background: 'var(--ff-accent)', color: 'white' }}
+                        onClick={() => setShowModal(true)}
+                    >
+                        <Plus size={16} />
+                        Record Tyre Change
+                    </button>
+                }
+            />
+
+            {error && (
+                <div className="mb-4 p-4 rounded-lg text-sm"
+                    style={{ background: '#ef444420', color: '#ef4444', border: '1px solid #ef444440' }}>
+                    {error}
+                </div>
+            )}
+
+            {/* Filter bar */}
+            <div className="flex flex-wrap gap-3 mb-6 p-4 rounded-xl"
+                style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                <select
+                    value={vehicleFilter}
+                    onChange={e => setVehicleFilter(e.target.value)}
+                    className="text-sm px-3 py-2 rounded-lg"
+                    style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                >
+                    <option value="">All Vehicles</option>
+                    {vehicles.map(v => (
+                        <option key={v.id} value={v.id}>{v.plate} — {v.make} {v.model}</option>
+                    ))}
+                </select>
+                <select
+                    value={positionFilter}
+                    onChange={e => setPositionFilter(e.target.value)}
+                    className="text-sm px-3 py-2 rounded-lg"
+                    style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                >
+                    <option value="">All Positions</option>
+                    {Object.entries(POSITION_LABELS).map(([val, label]) => (
+                        <option key={val} value={val}>{label}</option>
+                    ))}
+                </select>
+            </div>
+
+            {loading ? (
+                <div className="flex items-center justify-center h-48">
+                    <p style={{ color: 'var(--ff-text-muted)' }}>Loading tyre records…</p>
+                </div>
+            ) : filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 rounded-xl"
+                    style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                    <CircleDot size={40} style={{ color: 'var(--ff-border)' }} className="mb-3" />
+                    <p className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
+                        No tyre change records yet. Record your first change above.
+                    </p>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {filtered.map(r => (
+                        <div key={r.id} className="rounded-xl p-5"
+                            style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                            style={{ background: '#3b82f620', color: '#3b82f6' }}>
+                                            {POSITION_LABELS[r.position] ?? r.position}
+                                        </span>
+                                        {r.brand && (
+                                            <span className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>{r.brand}</span>
+                                        )}
+                                        {r.tyre_size && (
+                                            <span className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>{r.tyre_size}</span>
+                                        )}
+                                    </div>
+                                    <p className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
+                                        {r.vehicle?.plate} — {r.vehicle?.make} {r.vehicle?.model}
+                                        {r.odometer_km ? ` · ${Number(r.odometer_km).toLocaleString()} km` : ''}
+                                    </p>
+                                </div>
+                                <div className="text-right flex-shrink-0 ml-4">
+                                    <p className="font-bold text-sm" style={{ color: '#ef4444' }}>
+                                        ZMW {fmt(Number(r.cost_zmw))}
+                                    </p>
+                                    <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>{r.date}</p>
+                                </div>
+                            </div>
+                            {r.notes && (
+                                <p className="text-xs mt-2 pt-2" style={{ color: 'var(--ff-text-muted)', borderTop: '1px solid var(--ff-border)' }}>
+                                    {r.notes}
+                                </p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <AddTyreModal
+                open={showModal}
+                onClose={() => setShowModal(false)}
+                onSuccess={refetch}
+                vehicles={vehicles}
+            />
+        </div>
+    );
+}
