@@ -5,14 +5,14 @@ import { useExpenses } from '../hooks/useExpenses';
 import { useVehicles } from '../hooks/useVehicles';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 
-const EXPENSE_CATEGORIES = ['fuel', 'service', 'tyre', 'licensing', 'insurance', 'repairs', 'wash', 'other'] as const;
+const EXPENSE_CATEGORIES = ['fuel', 'service', 'tyre', 'licensing', 'insurance', 'repairs', 'salary', 'wash', 'other'] as const;
 const CAT_LABELS: Record<string, string> = {
     fuel: 'Fuel', service: 'Service', tyre: 'Tyre', licensing: 'Licensing',
-    insurance: 'Insurance', repairs: 'Repairs', wash: 'Wash', other: 'Other',
+    insurance: 'Insurance', repairs: 'Repairs', salary: 'Salary', wash: 'Wash', other: 'Other',
 };
 const CAT_COLORS: Record<string, string> = {
     fuel: '#f59e0b', service: '#3b82f6', tyre: '#8b5cf6', licensing: '#06b6d4',
-    insurance: '#10b981', repairs: '#ef4444', wash: '#64748b', other: '#94a3b8',
+    insurance: '#10b981', repairs: '#ef4444', salary: '#a855f7', wash: '#64748b', other: '#94a3b8',
 };
 
 export function Expenses() {
@@ -156,6 +156,12 @@ export function Expenses() {
                                             style={{ background: `${color}20`, color }}>
                                             {CAT_LABELS[r.category] ?? r.category}
                                         </span>
+                                        {r.source_table && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                                style={{ background: '#33415530', color: 'var(--ff-text-muted)', border: '1px solid var(--ff-border)' }}>
+                                                Auto
+                                            </span>
+                                        )}
                                     </div>
                                     <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>
                                         {r.vehicle?.plate} — {r.vehicle?.make} {r.vehicle?.model} · {r.date}

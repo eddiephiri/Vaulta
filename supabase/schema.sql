@@ -1,5 +1,5 @@
 -- ============================================================
---  FleetFlow — Supabase Schema
+--  Vaulta — Supabase Schema
 --  Run this entire file in the Supabase SQL Editor
 --  Dashboard → SQL Editor → New Query → Paste → Run
 -- ============================================================
@@ -93,16 +93,22 @@ create table if not exists public.income (
 
 -- ─── Expenses ───────────────────────────────────────────────
 create table if not exists public.expenses (
-    id          uuid primary key default gen_random_uuid(),
-    vehicle_id  uuid not null references public.vehicles(id) on delete cascade,
-    date        date not null,
-    amount_zmw  numeric not null default 0,
-    category    text not null
-                    check (category in ('fuel','service','tyre','licensing','insurance','repairs','wash','other')),
-    description text,
-    notes       text,
-    created_at  timestamptz not null default now()
+    id           uuid primary key default gen_random_uuid(),
+    vehicle_id   uuid not null references public.vehicles(id) on delete cascade,
+    date         date not null,
+    amount_zmw   numeric not null default 0,
+    category     text not null
+                     check (category in ('fuel','service','tyre','licensing','insurance','repairs','salary','wash','other')),
+    description  text,
+    notes        text,
+    -- set by triggers when auto-generated from service_history / tyre_changes / licensing
+    source_table text,
+    source_id    uuid,
+    created_at   timestamptz not null default now()
 );
+
+-- NOTE: Auto-expense triggers are in supabase/triggers.sql
+-- Run triggers.sql after this file to enable auto-population of expenses.
 
 -- ─── Row-Level Security (RLS) ───────────────────────────────
 -- Enable RLS on all tables (blocks public access by default)

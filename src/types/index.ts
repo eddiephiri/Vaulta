@@ -101,6 +101,7 @@ export type ExpenseCategory =
     | 'licensing'
     | 'insurance'
     | 'repairs'
+    | 'salary'
     | 'wash'
     | 'other';
 
@@ -113,6 +114,9 @@ export interface ExpenseRecord {
     category: ExpenseCategory;
     description?: string;
     notes?: string;
+    // set by database trigger — null means manually entered
+    source_table?: 'service_history' | 'tyre_changes' | 'licensing' | null;
+    source_id?: string | null;
     created_at: string;
 }
 
