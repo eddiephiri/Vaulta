@@ -1,4 +1,5 @@
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 export function Login() {
@@ -53,7 +54,7 @@ export function Login() {
                         🚛
                     </div>
                     <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--ff-text-primary)', margin: 0 }}>
-                        FleetFlow
+                        Vaulta
                     </h1>
                     <p style={{ fontSize: 14, color: 'var(--ff-text-muted)', marginTop: 6 }}>
                         Sign in to manage your fleet
@@ -154,7 +155,7 @@ export function Login() {
                 </div>
 
                 <p style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: 'var(--ff-text-muted)' }}>
-                    FleetFlow · Admin Access Only
+                    Vaulta · Admin Access Only
                 </p>
             </div>
         </div>

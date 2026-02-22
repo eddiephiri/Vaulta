@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-icon-192.png', 'pwa-icon-512.png'],
       manifest: {
-        name: 'FleetFlow',
-        short_name: 'FleetFlow',
+        name: 'Vaulta',
+        short_name: 'Vaulta',
         description: 'Fleet & Business Management for Yango Operators in Zambia',
         theme_color: '#1e3a5f',
         background_color: '#0f172a',

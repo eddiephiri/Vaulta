@@ -9,12 +9,12 @@ import { registerSW } from 'virtual:pwa-register';
 const updateSW = registerSW({
   onNeedRefresh() {
     // App has a new version available — you can show a toast here
-    if (confirm('New version of FleetFlow available. Update now?')) {
+    if (confirm('New version of Vaulta available. Update now?')) {
       updateSW(true);
     }
   },
   onOfflineReady() {
-    console.log('FleetFlow is ready to work offline.');
+    console.log('Vaulta is ready to work offline.');
   },
 });
 

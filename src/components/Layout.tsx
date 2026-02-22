@@ -64,7 +64,7 @@ export function Layout() {
                     </div>
                     {!collapsed && (
                         <span className="font-bold text-lg tracking-tight" style={{ color: 'var(--ff-text-primary)' }}>
-                            FleetFlow
+                            Vaulta
                         </span>
                     )}
                 </div>
@@ -132,7 +132,7 @@ export function Layout() {
                     style={{ borderColor: 'var(--ff-border)', background: 'var(--ff-surface)' }}
                 >
                     <h1 className="text-lg font-semibold" style={{ color: 'var(--ff-text-primary)' }}>
-                        {currentPage?.label ?? 'FleetFlow'}
+                        {currentPage?.label ?? 'Vaulta'}
                     </h1>
                     <div className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
                         ZMW · Zambia

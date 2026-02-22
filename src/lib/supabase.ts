@@ -5,7 +5,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 if (!supabaseUrl || !supabaseAnonKey) {
     console.warn(
-        '[FleetFlow] Missing Supabase environment variables. ' +
+        '[Vaulta] Missing Supabase environment variables. ' +
         'Copy .env.example to .env and fill in your Supabase project URL and anon key. ' +
         'The app will run in offline/demo mode until credentials are provided.'
     );
