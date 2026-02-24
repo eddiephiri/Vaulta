@@ -3,6 +3,7 @@ import { Plus, Receipt } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useExpenses } from '../hooks/useExpenses';
 import { useVehicles } from '../hooks/useVehicles';
+import { useDrivers } from '../hooks/useDrivers';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 
 const EXPENSE_CATEGORIES = ['fuel', 'service', 'tyre', 'licensing', 'insurance', 'repairs', 'salary', 'wash', 'other'] as const;
@@ -22,6 +23,7 @@ export function Expenses() {
     const [showModal, setShowModal] = useState(false);
 
     const { vehicles } = useVehicles();
+    const { drivers } = useDrivers(true);  // active only
     const { records, loading, error, totalToday, totalThisWeek, totalThisMonth, refetch } =
         useExpenses(vehicleFilter || undefined);
 
@@ -184,6 +186,7 @@ export function Expenses() {
                 onClose={() => setShowModal(false)}
                 onSuccess={refetch}
                 vehicles={vehicles}
+                drivers={drivers}
             />
         </div>
     );

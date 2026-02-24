@@ -1,21 +1,32 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { Vehicle, IncomeSource } from '../types';
+import type { Vehicle, IncomeSource, Driver } from '../types';
 
 interface AddIncomeModalProps {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
     vehicles: Vehicle[];
+    drivers?: Driver[];
+    /** Pre-fill from an overdue expected_cashing row */
+    prefill?: {
+        vehicle_id: string;
+        expected_cashing_id: string;
+        expected_date: string;
+        is_salary_week: boolean;
+    };
 }
 
 const SOURCES: { value: IncomeSource; label: string }[] = [
     { value: 'yango', label: 'Yango' },
+    { value: 'public_transport', label: 'Bus / Public Transport' },
     { value: 'rental', label: 'Rental' },
     { value: 'other', label: 'Other' },
 ];
+
+type LateReason = 'none' | 'late_driver' | 'late_admin';
 
 const INPUT_STYLE = {
     background: 'var(--ff-navy)',
@@ -36,31 +47,42 @@ const LABEL_STYLE = {
     marginBottom: 4,
 } as const;
 
-export function AddIncomeModal({ open, onClose, onSuccess, vehicles }: AddIncomeModalProps) {
+export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [], prefill }: AddIncomeModalProps) {
+    const today = new Date().toISOString().slice(0, 10);
+
     const [form, setForm] = useState({
         vehicle_id: '',
-        date: new Date().toISOString().slice(0, 10),
+        date: today,
         amount_zmw: '',
         source: 'yango' as IncomeSource,
+        period_start: '',
+        period_end: '',
+        driver_id: '',
         reference: '',
         notes: '',
     });
+    const [lateReason, setLateReason] = useState<LateReason>('none');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (open) {
             setForm({
-                vehicle_id: vehicles[0]?.id ?? '',
-                date: new Date().toISOString().slice(0, 10),
+                vehicle_id: prefill?.vehicle_id ?? vehicles[0]?.id ?? '',
+                date: today,
                 amount_zmw: '',
                 source: 'yango',
+                period_start: '',
+                period_end: '',
+                driver_id: '',
                 reference: '',
                 notes: '',
             });
+            setLateReason('none');
             setError(null);
         }
-    }, [open, vehicles]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, vehicles, prefill]);
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -84,19 +106,51 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles }: AddIncome
         }
 
         setSubmitting(true);
-        const { error: supaErr } = await supabase.from('income').insert({
-            vehicle_id: form.vehicle_id,
-            date: form.date,
-            amount_zmw: Number(form.amount_zmw),
-            source: form.source,
-            reference: form.reference.trim() || null,
-            notes: form.notes.trim() || null,
-        });
-        setSubmitting(false);
 
-        if (supaErr) { setError(supaErr.message); }
-        else { onSuccess(); onClose(); }
+        // If logged from an overdue reminder, determine final status
+        const cashingStatus =
+            lateReason === 'late_driver' ? 'late_driver'
+                : lateReason === 'late_admin' ? 'late_admin'
+                    : 'recorded';
+
+        const { data: incomeData, error: supaErr } = await supabase
+            .from('income')
+            .insert({
+                vehicle_id: form.vehicle_id,
+                date: form.date,
+                amount_zmw: Number(form.amount_zmw),
+                source: form.source,
+                period_start: form.period_start || null,
+                period_end: form.period_end || null,
+                driver_id: form.driver_id || null,
+                expected_cashing_id: prefill?.expected_cashing_id ?? null,
+                reference: form.reference.trim() || null,
+                notes: form.notes.trim() || null,
+            })
+            .select('id')
+            .single();
+
+        if (supaErr) {
+            setError(supaErr.message);
+            setSubmitting(false);
+            return;
+        }
+
+        // Update the expected_cashing status if this was a reminder-triggered entry
+        if (prefill?.expected_cashing_id && incomeData?.id) {
+            await supabase
+                .from('expected_cashings')
+                .update({ status: cashingStatus, income_record_id: incomeData.id })
+                .eq('id', prefill.expected_cashing_id);
+        }
+
+        setSubmitting(false);
+        onSuccess();
+        onClose();
     };
+
+    const isSalaryWeek = prefill?.is_salary_week ?? false;
+    const isFromReminder = !!prefill?.expected_cashing_id;
 
     return (
         <div onClick={onClose} style={{
@@ -108,7 +162,7 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles }: AddIncome
             <div onClick={e => e.stopPropagation()} style={{
                 background: 'var(--ff-surface)',
                 border: '1px solid var(--ff-border)',
-                borderRadius: 16, width: '100%', maxWidth: 460, padding: 28,
+                borderRadius: 16, width: '100%', maxWidth: 480, padding: 28,
                 boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
                 maxHeight: '90vh', overflowY: 'auto',
             }}>
@@ -118,6 +172,14 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles }: AddIncome
                         <X size={20} />
                     </button>
                 </div>
+
+                {/* Salary week hint */}
+                {isSalaryWeek && (
+                    <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: '#a855f715', border: '1px solid #a855f740', fontSize: 13, color: '#a855f7', display: 'flex', gap: 8 }}>
+                        <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                        This is the salary week — remember to log driver salary and any service costs as separate expenses.
+                    </div>
+                )}
 
                 {error && (
                     <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: '#ef444420', color: '#ef4444', border: '1px solid #ef444440', fontSize: 13 }}>
@@ -139,7 +201,7 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles }: AddIncome
                     {/* Date / Source */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
-                            <label style={LABEL_STYLE}>Date *</label>
+                            <label style={LABEL_STYLE}>Cashing Date *</label>
                             <input type="date" style={INPUT_STYLE} value={form.date} onChange={set('date')} />
                         </div>
                         <div>
@@ -150,12 +212,38 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles }: AddIncome
                         </div>
                     </div>
 
+                    {/* Period */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                            <label style={LABEL_STYLE}>Period From</label>
+                            <input type="date" style={INPUT_STYLE} value={form.period_start} onChange={set('period_start')} />
+                        </div>
+                        <div>
+                            <label style={LABEL_STYLE}>Period To</label>
+                            <input type="date" style={INPUT_STYLE} value={form.period_end} onChange={set('period_end')} />
+                        </div>
+                    </div>
+                    <p style={{ marginTop: -8, fontSize: 11, color: 'var(--ff-text-muted)' }}>
+                        The week this cashing covers (gross amount before deductions).
+                    </p>
+
                     {/* Amount */}
                     <div>
-                        <label style={LABEL_STYLE}>Amount (ZMW) *</label>
+                        <label style={LABEL_STYLE}>Gross Amount (ZMW) *</label>
                         <input type="number" min="0.01" step="0.01" style={INPUT_STYLE} placeholder="0.00"
                             value={form.amount_zmw} onChange={set('amount_zmw')} autoFocus />
                     </div>
+
+                    {/* Driver */}
+                    {drivers.length > 0 && (
+                        <div>
+                            <label style={LABEL_STYLE}>Driver (optional)</label>
+                            <select style={INPUT_STYLE} value={form.driver_id} onChange={set('driver_id')}>
+                                <option value="">— Select driver —</option>
+                                {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                            </select>
+                        </div>
+                    )}
 
                     {/* Reference */}
                     <div>
@@ -163,6 +251,29 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles }: AddIncome
                         <input style={INPUT_STYLE} placeholder="e.g. Yango payout ref, invoice #"
                             value={form.reference} onChange={set('reference')} />
                     </div>
+
+                    {/* Late acknowledgement — shown when logging from a reminder */}
+                    {isFromReminder && (
+                        <div>
+                            <label style={LABEL_STYLE}>Was the cashing late?</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {([
+                                    { val: 'none', label: 'No — cashing was on time' },
+                                    { val: 'late_driver', label: 'Yes — driver was late' },
+                                    { val: 'late_admin', label: 'No — I forgot to log it' },
+                                ] as { val: LateReason; label: string }[]).map(opt => (
+                                    <label key={opt.val} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', color: 'var(--ff-text-primary)' }}>
+                                        <input type="radio" name="lateReason" value={opt.val}
+                                            checked={lateReason === opt.val}
+                                            onChange={() => setLateReason(opt.val)}
+                                            style={{ accentColor: 'var(--ff-accent)' }}
+                                        />
+                                        {opt.label}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Notes */}
                     <div>

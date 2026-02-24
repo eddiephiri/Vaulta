@@ -8,6 +8,8 @@ import { Licensing } from './pages/Licensing';
 import { Income } from './pages/Income';
 import { Expenses } from './pages/Expenses';
 import { Reports } from './pages/Reports';
+import { Drivers } from './pages/Drivers';
+import { CashingSchedules } from './pages/CashingSchedules';
 import { Login } from './pages/Login';
 import { useAuth } from './hooks/useAuth';
 
@@ -46,6 +48,8 @@ export default function App() {
           <Route path="licensing" element={<Licensing />} />
           <Route path="income" element={<Income />} />
           <Route path="expenses" element={<Expenses />} />
+          <Route path="drivers" element={<Drivers />} />
+          <Route path="cashing-schedules" element={<CashingSchedules />} />
           <Route path="reports" element={<Reports />} />
         </Route>
       </Routes>

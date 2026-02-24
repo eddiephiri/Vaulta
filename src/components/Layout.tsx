@@ -12,6 +12,8 @@ import {
     ChevronRight,
     LogOut,
     Zap,
+    Users,
+    CalendarClock,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
@@ -24,6 +26,8 @@ const navItems = [
     { to: '/licensing', icon: FileCheck2, label: 'Licensing' },
     { to: '/income', icon: TrendingUp, label: 'Income' },
     { to: '/expenses', icon: Receipt, label: 'Expenses' },
+    { to: '/drivers', icon: Users, label: 'Drivers' },
+    { to: '/cashing-schedules', icon: CalendarClock, label: 'Cashing Schedules' },
     { to: '/reports', icon: BarChart3, label: 'Reports' },
 ];
 

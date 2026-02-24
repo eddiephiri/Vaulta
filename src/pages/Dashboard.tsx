@@ -1,16 +1,19 @@
-import { Car, TrendingUp, Receipt, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Car, TrendingUp, Receipt, AlertTriangle, CheckCircle, CalendarClock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { StatCard } from '../components/StatCard';
 import { useVehicles } from '../hooks/useVehicles';
 import { useIncome } from '../hooks/useIncome';
 import { useExpenses } from '../hooks/useExpenses';
 import { useLicensing } from '../hooks/useLicensing';
+import { useExpectedCashings } from '../hooks/useExpectedCashings';
 
 export function Dashboard() {
     const { vehicles, loading: vLoading } = useVehicles();
     const { records: incomeRecords, totalThisMonth: monthIncome, loading: iLoading } = useIncome();
     const { records: expenseRecords, totalThisMonth: monthExpenses, loading: eLoading } = useExpenses();
     const { expiring, records: licRecords, loading: lLoading } = useLicensing();
+    const { overdue } = useExpectedCashings();
 
     const loading = vLoading || iLoading || eLoading || lLoading;
     const activeCount = vehicles.filter(v => v.status === 'active').length;
@@ -28,6 +31,26 @@ export function Dashboard() {
                 title="Dashboard"
                 subtitle="Welcome back — here's your fleet overview"
             />
+
+            {/* Overdue cashing reminder banner */}
+            {overdue.length > 0 && (
+                <Link to="/cashing-schedules" style={{ textDecoration: 'none' }}>
+                    <div className="mb-6 p-4 rounded-xl flex items-start gap-3 cursor-pointer"
+                        style={{ background: '#f59e0b15', border: '1px solid #f59e0b50' }}>
+                        <CalendarClock size={18} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+                        <div>
+                            <p className="text-sm font-semibold" style={{ color: '#f59e0b' }}>
+                                {overdue.length} overdue cashing{overdue.length > 1 ? 's' : ''}
+                            </p>
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>
+                                {overdue.map(c =>
+                                    `${c.vehicle?.plate ?? 'Vehicle'}${c.is_salary_week ? ' (salary wk)' : ''}`
+                                ).join(' · ')} — tap to review
+                            </p>
+                        </div>
+                    </div>
+                </Link>
+            )}
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

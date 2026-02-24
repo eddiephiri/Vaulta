@@ -3,10 +3,12 @@ import { Plus, TrendingUp } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useIncome } from '../hooks/useIncome';
 import { useVehicles } from '../hooks/useVehicles';
+import { useDrivers } from '../hooks/useDrivers';
 import { AddIncomeModal } from '../components/AddIncomeModal';
 
 const SOURCE_LABELS: Record<string, string> = {
     yango: 'Yango',
+    public_transport: 'Bus',
     rental: 'Rental',
     other: 'Other',
 };
@@ -18,6 +20,7 @@ export function Income() {
     const [showModal, setShowModal] = useState(false);
 
     const { vehicles } = useVehicles();
+    const { drivers } = useDrivers(true);  // active only
     const { records, loading, error, totalToday, totalThisWeek, totalThisMonth, refetch } =
         useIncome(vehicleFilter || undefined);
 
@@ -140,6 +143,7 @@ export function Income() {
                 onClose={() => setShowModal(false)}
                 onSuccess={refetch}
                 vehicles={vehicles}
+                drivers={drivers}
             />
         </div>
     );
