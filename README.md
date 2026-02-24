@@ -1,73 +1,131 @@
-# React + TypeScript + Vite
+# Vaulta — Fleet & Business Management
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Progressive Web App (PWA) for tracking vehicles, income, expenses, drivers, and licensing — built for a single admin user.
 
-Currently, two official plugins are available:
+**Stack:** React · TypeScript · Vite · Tailwind CSS · Supabase
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Tool | Version |
+|---|---|
+| Node.js | 18 or later |
+| npm | 9 or later |
+| Supabase account | [supabase.com](https://supabase.com) |
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 1 — Clone & Install
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+git clone <your-repo-url>
+cd fleetflow
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 2 — Create a Supabase Project
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Go to [supabase.com](https://supabase.com) → **New project**
+2. Copy your project's **URL** and **anon public key** from  
+   *Project Settings → API*
+
+---
+
+## 3 — Configure Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+> `.env` is git-ignored. Never commit secrets.
+
+---
+
+## 4 — Apply the Database Schema
+
+Open the **Supabase SQL Editor** (*project dashboard → SQL Editor*) and run these files **in order**:
+
+| Step | File | Purpose |
+|---|---|---|
+| 1 | `supabase/schema.sql` | Core tables (vehicles, income, expenses, service, tyres, licensing) |
+| 2 | `supabase/triggers.sql` | Auto-expense triggers (service → expense, tyre → expense, etc.) |
+| 3 | `supabase/drivers_and_schedules.sql` | Drivers, cashing schedules, expected cashings, new income/expense columns |
+
+Paste each file's contents into the SQL Editor and click **Run**.
+
+> **Auth:** Create your admin user in *Supabase → Authentication → Users → Invite user*. The app blocks access until signed in.
+
+---
+
+## 5 — Run the Dev Server
+
+```bash
+npm run dev
+```
+
+The app will be available at **http://localhost:5173** (or the next available port).
+
+---
+
+## 6 — Build for Production
+
+```bash
+npm run build
+```
+
+Output goes to `dist/`. Deploy to any static host (Netlify, Vercel, Cloudflare Pages, etc.).
+
+To preview the production build locally:
+
+```bash
+npm run preview
+```
+
+---
+
+## Project Structure
+
+```
+src/
+├── components/       # Reusable UI components and modals
+├── hooks/            # Data-fetching hooks (useVehicles, useIncome, useDrivers, …)
+├── lib/              # Supabase client
+├── pages/            # One file per route (Dashboard, Income, Expenses, Drivers, …)
+└── types/            # Shared TypeScript interfaces
+
+supabase/
+├── schema.sql                  # Core schema
+├── triggers.sql                # Auto-expense DB triggers
+└── drivers_and_schedules.sql   # Driver management migration
+```
+
+---
+
+## Key Features
+
+- **Dashboard** — KPI cards, recent income, overdue cashing reminders, license expiry alerts
+- **Vehicles** — fleet status tracking (active, maintenance, retired)
+- **Income** — per-vehicle income with Yango, Bus/Public Transport, and Rental sources; cashing period tracking
+- **Expenses** — manual entry with auto-generated service/tyre/licensing expenses via DB triggers
+- **Drivers** — driver profiles linked to vehicles and salary expenses
+- **Cashing Schedules** — configurable weekly cashing cycles with overdue alerts
+- **Service / Tyre / Licensing** — each record auto-creates a corresponding expense entry
+- **Reports** — income vs. expense summaries per vehicle
+
+---
+
+## Useful Commands
+
+```bash
+npm run dev        # Start development server with hot reload
+npm run build      # Production build
+npm run preview    # Preview production build locally
+npm run lint       # Run ESLint
+npx tsc --noEmit   # Type-check without emitting files
 ```

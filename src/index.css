@@ -57,3 +57,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* Pointer cursor on all interactive elements */
+a,
+button,
+[role="button"],
+select {
+  cursor: pointer;
+}
