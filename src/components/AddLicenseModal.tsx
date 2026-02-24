@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { Vehicle, LicenseType } from '../types';
+import type { Vehicle, LicenseType, LicenseRecord } from '../types';
 
 interface AddLicenseModalProps {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
     vehicles: Vehicle[];
+    initialData?: LicenseRecord;
 }
 
 const LICENSE_TYPES: { value: LicenseType; label: string }[] = [
@@ -19,7 +20,6 @@ const LICENSE_TYPES: { value: LicenseType; label: string }[] = [
     { value: 'other', label: 'Other' },
 ];
 
-// Common reminder intervals
 const REMINDER_DAYS = [
     { value: '7', label: '7 days before' },
     { value: '14', label: '14 days before' },
@@ -47,7 +47,8 @@ const LABEL_STYLE = {
     marginBottom: 4,
 } as const;
 
-export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicenseModalProps) {
+export function AddLicenseModal({ open, onClose, onSuccess, vehicles, initialData }: AddLicenseModalProps) {
+    const isEdit = !!initialData;
     const today = new Date().toISOString().slice(0, 10);
 
     const [form, setForm] = useState({
@@ -63,7 +64,18 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (open) {
+        if (!open) return;
+        if (initialData) {
+            setForm({
+                vehicle_id: initialData.vehicle_id,
+                license_type: initialData.license_type,
+                issued_date: initialData.issued_date,
+                expiry_date: initialData.expiry_date,
+                cost_zmw: String(initialData.cost_zmw),
+                reminder_days_before: String(initialData.reminder_days_before ?? 30),
+                notes: initialData.notes ?? '',
+            });
+        } else {
             setForm({
                 vehicle_id: vehicles[0]?.id ?? '',
                 license_type: 'road_tax',
@@ -73,9 +85,9 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
                 reminder_days_before: '30',
                 notes: '',
             });
-            setError(null);
         }
-    }, [open, vehicles]);
+        setError(null);
+    }, [open, initialData, vehicles]);
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -101,7 +113,7 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
         }
 
         setSubmitting(true);
-        const { error: supaErr } = await supabase.from('licensing').insert({
+        const payload = {
             vehicle_id: form.vehicle_id,
             license_type: form.license_type,
             issued_date: form.issued_date,
@@ -109,7 +121,11 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
             cost_zmw: Number(form.cost_zmw),
             reminder_days_before: Number(form.reminder_days_before),
             notes: form.notes.trim() || null,
-        });
+        };
+
+        const { error: supaErr } = isEdit
+            ? await supabase.from('licensing').update(payload).eq('id', initialData!.id)
+            : await supabase.from('licensing').insert(payload);
         setSubmitting(false);
 
         if (supaErr) { setError(supaErr.message); }
@@ -131,8 +147,10 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
                 maxHeight: '90vh', overflowY: 'auto',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>Add License Record</h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ff-text-muted)', padding: 4 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>
+                        {isEdit ? 'Edit License Record' : 'Add License Record'}
+                    </h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--ff-text-muted)', padding: 4 }}>
                         <X size={20} />
                     </button>
                 </div>
@@ -144,7 +162,6 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
                 )}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {/* Vehicle */}
                     <div>
                         <label style={LABEL_STYLE}>Vehicle *</label>
                         <select style={INPUT_STYLE} value={form.vehicle_id} onChange={set('vehicle_id')}>
@@ -154,7 +171,6 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
                         </select>
                     </div>
 
-                    {/* License Type */}
                     <div>
                         <label style={LABEL_STYLE}>License Type *</label>
                         <select style={INPUT_STYLE} value={form.license_type} onChange={set('license_type')}>
@@ -162,7 +178,6 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
                         </select>
                     </div>
 
-                    {/* Issue Date / Expiry Date */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
                             <label style={LABEL_STYLE}>Issue Date *</label>
@@ -174,7 +189,6 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
                         </div>
                     </div>
 
-                    {/* Cost / Reminder */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
                             <label style={LABEL_STYLE}>Cost (ZMW) *</label>
@@ -188,7 +202,6 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
                         </div>
                     </div>
 
-                    {/* Notes */}
                     <div>
                         <label style={LABEL_STYLE}>Notes</label>
                         <textarea rows={2} style={{ ...INPUT_STYLE, resize: 'vertical' } as React.CSSProperties}
@@ -199,13 +212,13 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles }: AddLicen
                         <button type="button" onClick={onClose} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             background: 'var(--ff-navy)', color: 'var(--ff-text-muted)',
-                            border: '1px solid var(--ff-border)', cursor: 'pointer',
+                            border: '1px solid var(--ff-border)',
                         }}>Cancel</button>
                         <button type="submit" disabled={submitting} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             fontWeight: 600, background: submitting ? '#334155' : 'var(--ff-accent)',
-                            color: 'white', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
-                        }}>{submitting ? 'Saving…' : 'Add License'}</button>
+                            color: 'white', border: 'none',
+                        }}>{submitting ? 'Saving…' : isEdit ? 'Save Changes' : 'Add License'}</button>
                     </div>
                 </form>
             </div>

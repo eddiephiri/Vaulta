@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, Car } from 'lucide-react';
+import { Plus, Car, Pencil } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useVehicles } from '../hooks/useVehicles';
 import { AddVehicleModal } from '../components/AddVehicleModal';
+import type { Vehicle } from '../types';
 
 const statusColors: Record<string, { bg: string; text: string }> = {
     active: { bg: '#22c55e20', text: '#22c55e' },
@@ -12,7 +13,12 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 
 export function Vehicles() {
     const [showModal, setShowModal] = useState(false);
+    const [editing, setEditing] = useState<Vehicle | null>(null);
     const { vehicles, loading, error, refetch } = useVehicles();
+
+    const openAdd = () => { setEditing(null); setShowModal(true); };
+    const openEdit = (v: Vehicle) => { setEditing(v); setShowModal(true); };
+    const handleClose = () => { setShowModal(false); setEditing(null); };
 
     return (
         <div>
@@ -25,7 +31,7 @@ export function Vehicles() {
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--ff-accent-hover)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'var(--ff-accent)')}
-                        onClick={() => setShowModal(true)}
+                        onClick={openAdd}
                     >
                         <Plus size={16} />
                         Add Vehicle
@@ -63,7 +69,7 @@ export function Vehicles() {
                         return (
                             <div
                                 key={v.id}
-                                className="rounded-xl p-5 transition-transform hover:-translate-y-0.5 cursor-pointer"
+                                className="rounded-xl p-5 transition-transform hover:-translate-y-0.5"
                                 style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}
                             >
                                 <div className="flex items-start justify-between mb-3">
@@ -75,12 +81,23 @@ export function Vehicles() {
                                             {v.year} {v.make} {v.model}
                                         </p>
                                     </div>
-                                    <span
-                                        className="text-xs px-2.5 py-1 rounded-full font-medium capitalize"
-                                        style={{ background: sc.bg, color: sc.text }}
-                                    >
-                                        {v.status}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span
+                                            className="text-xs px-2.5 py-1 rounded-full font-medium capitalize"
+                                            style={{ background: sc.bg, color: sc.text }}
+                                        >
+                                            {v.status}
+                                        </span>
+                                        <button
+                                            onClick={() => openEdit(v)}
+                                            title="Edit vehicle"
+                                            style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                            onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                            onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="flex gap-4 mt-3 pt-3" style={{ borderTop: '1px solid var(--ff-border)' }}>
                                     <div>
@@ -100,8 +117,9 @@ export function Vehicles() {
 
             <AddVehicleModal
                 open={showModal}
-                onClose={() => setShowModal(false)}
+                onClose={handleClose}
                 onSuccess={refetch}
+                initialData={editing ?? undefined}
             />
         </div>
     );

@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Plus, Wrench } from 'lucide-react';
+import { Plus, Wrench, Pencil } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useServiceHistory } from '../hooks/useServiceHistory';
 import { useVehicles } from '../hooks/useVehicles';
 import { AddServiceModal } from '../components/AddServiceModal';
+import type { ServiceRecord } from '../types';
 
 export function ServiceHistory() {
     const [vehicleFilter, setVehicleFilter] = useState('');
     const [monthFilter, setMonthFilter] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [editing, setEditing] = useState<ServiceRecord | null>(null);
 
     const { vehicles } = useVehicles();
     const { records, loading, error, refetch } = useServiceHistory(vehicleFilter || undefined);
@@ -20,6 +22,10 @@ export function ServiceHistory() {
     const fmt = (n: number) =>
         n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    const openAdd = () => { setEditing(null); setShowModal(true); };
+    const openEdit = (r: ServiceRecord) => { setEditing(r); setShowModal(true); };
+    const handleClose = () => { setShowModal(false); setEditing(null); };
+
     return (
         <div>
             <PageHeader
@@ -29,7 +35,7 @@ export function ServiceHistory() {
                     <button
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
-                        onClick={() => setShowModal(true)}
+                        onClick={openAdd}
                     >
                         <Plus size={16} />
                         Log Service
@@ -95,11 +101,22 @@ export function ServiceHistory() {
                                         {r.odometer_km ? ` · ${Number(r.odometer_km).toLocaleString()} km` : ''}
                                     </p>
                                 </div>
-                                <div className="text-right flex-shrink-0 ml-4">
-                                    <p className="font-bold text-sm" style={{ color: '#ef4444' }}>
-                                        ZMW {fmt(Number(r.cost_zmw))}
-                                    </p>
-                                    <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>{r.date}</p>
+                                <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                                    <div className="text-right">
+                                        <p className="font-bold text-sm" style={{ color: '#ef4444' }}>
+                                            ZMW {fmt(Number(r.cost_zmw))}
+                                        </p>
+                                        <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>{r.date}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => openEdit(r)}
+                                        title="Edit record"
+                                        style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                    >
+                                        <Pencil size={14} />
+                                    </button>
                                 </div>
                             </div>
                             {r.notes && (
@@ -114,9 +131,10 @@ export function ServiceHistory() {
 
             <AddServiceModal
                 open={showModal}
-                onClose={() => setShowModal(false)}
+                onClose={handleClose}
                 onSuccess={refetch}
                 vehicles={vehicles}
+                initialData={editing ?? undefined}
             />
         </div>
     );

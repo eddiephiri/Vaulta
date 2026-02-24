@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Plus, FileCheck2, AlertTriangle } from 'lucide-react';
+import { Plus, FileCheck2, AlertTriangle, Pencil } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useLicensing } from '../hooks/useLicensing';
 import { useVehicles } from '../hooks/useVehicles';
 import { AddLicenseModal } from '../components/AddLicenseModal';
+import type { LicenseRecord } from '../types';
 
 const LICENSE_TYPE_LABELS: Record<string, string> = {
     road_tax: 'Road Tax',
@@ -18,6 +19,8 @@ const LICENSE_TYPES = Object.keys(LICENSE_TYPE_LABELS);
 export function Licensing() {
     const [vehicleFilter, setVehicleFilter] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [editing, setEditing] = useState<LicenseRecord | null>(null);
+
     const { vehicles } = useVehicles();
     const { records, loading, error, expiring, refetch } = useLicensing(vehicleFilter || undefined);
 
@@ -30,6 +33,10 @@ export function Licensing() {
     const fmt = (n: number) =>
         n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    const openAdd = () => { setEditing(null); setShowModal(true); };
+    const openEdit = (r: LicenseRecord) => { setEditing(r); setShowModal(true); };
+    const handleClose = () => { setShowModal(false); setEditing(null); };
+
     return (
         <div>
             <PageHeader
@@ -39,7 +46,7 @@ export function Licensing() {
                     <button
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
-                        onClick={() => setShowModal(true)}
+                        onClick={openAdd}
                     >
                         <Plus size={16} />
                         Add License
@@ -146,9 +153,20 @@ export function Licensing() {
                                             Issued: {r.issued_date} · Expires: {r.expiry_date}
                                         </p>
                                     </div>
-                                    <p className="font-bold text-sm flex-shrink-0 ml-4" style={{ color: '#ef4444' }}>
-                                        ZMW {fmt(Number(r.cost_zmw))}
-                                    </p>
+                                    <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                                        <p className="font-bold text-sm" style={{ color: '#ef4444' }}>
+                                            ZMW {fmt(Number(r.cost_zmw))}
+                                        </p>
+                                        <button
+                                            onClick={() => openEdit(r)}
+                                            title="Edit record"
+                                            style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                            onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                            onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                                 {r.notes && (
                                     <p className="text-xs mt-2 pt-2" style={{ color: 'var(--ff-text-muted)', borderTop: '1px solid var(--ff-border)' }}>
@@ -163,9 +181,10 @@ export function Licensing() {
 
             <AddLicenseModal
                 open={showModal}
-                onClose={() => setShowModal(false)}
+                onClose={handleClose}
                 onSuccess={refetch}
                 vehicles={vehicles}
+                initialData={editing ?? undefined}
             />
         </div>
     );

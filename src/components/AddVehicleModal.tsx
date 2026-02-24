@@ -2,15 +2,14 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { VehicleStatus } from '../types';
+import type { Vehicle, VehicleStatus } from '../types';
 
 interface AddVehicleModalProps {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    initialData?: Vehicle;
 }
-
-// ─── Dropdown data ───────────────────────────────────────────────────────────
 
 const MAKES = [
     'Toyota', 'Nissan', 'Mazda', 'Mitsubishi', 'Honda', 'Isuzu',
@@ -26,9 +25,7 @@ const COLORS = [
 ];
 
 const currentYear = new Date().getFullYear();
-const YEARS = Array.from({ length: currentYear - 1989 }, (_, i) => currentYear - i); // 2026 → 1990 desc
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
+const YEARS = Array.from({ length: currentYear - 1989 }, (_, i) => currentYear - i);
 
 const INPUT_STYLE = {
     background: 'var(--ff-navy)',
@@ -49,39 +46,46 @@ const LABEL_STYLE = {
     marginBottom: 4,
 } as const;
 
-// ─── Component ───────────────────────────────────────────────────────────────
+const BLANK = {
+    plate: '',
+    make: 'Toyota',
+    makeOther: '',
+    model: '',
+    year: String(currentYear),
+    color: 'White',
+    colorOther: '',
+    status: 'active' as VehicleStatus,
+    odometer_km: '0',
+};
 
-export function AddVehicleModal({ open, onClose, onSuccess }: AddVehicleModalProps) {
-    const [form, setForm] = useState({
-        plate: '',
-        make: 'Toyota',
-        makeOther: '',
-        model: '',
-        year: String(currentYear),
-        color: 'White',
-        colorOther: '',
-        status: 'active' as VehicleStatus,
-        odometer_km: '0',
-    });
+export function AddVehicleModal({ open, onClose, onSuccess, initialData }: AddVehicleModalProps) {
+    const isEdit = !!initialData;
+
+    const [form, setForm] = useState(BLANK);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (open) {
+        if (!open) return;
+        if (initialData) {
+            const knownMake = MAKES.includes(initialData.make) ? initialData.make : 'Other';
+            const knownColor = COLORS.includes(initialData.color ?? '') ? (initialData.color ?? 'White') : 'Other';
             setForm({
-                plate: '',
-                make: 'Toyota',
-                makeOther: '',
-                model: '',
-                year: String(currentYear),
-                color: 'White',
-                colorOther: '',
-                status: 'active',
-                odometer_km: '0',
+                plate: initialData.plate,
+                make: knownMake,
+                makeOther: knownMake === 'Other' ? initialData.make : '',
+                model: initialData.model,
+                year: String(initialData.year ?? currentYear),
+                color: knownColor,
+                colorOther: knownColor === 'Other' ? (initialData.color ?? '') : '',
+                status: initialData.status,
+                odometer_km: String(initialData.odometer_km ?? 0),
             });
-            setError(null);
+        } else {
+            setForm(BLANK);
         }
-    }, [open]);
+        setError(null);
+    }, [open, initialData]);
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -107,7 +111,7 @@ export function AddVehicleModal({ open, onClose, onSuccess }: AddVehicleModalPro
         if (!form.model.trim()) { setError('Model is required.'); return; }
 
         setSubmitting(true);
-        const { error: supaErr } = await supabase.from('vehicles').insert({
+        const payload = {
             plate: form.plate.trim().toUpperCase(),
             make: resolvedMake,
             model: form.model.trim(),
@@ -115,7 +119,11 @@ export function AddVehicleModal({ open, onClose, onSuccess }: AddVehicleModalPro
             color: resolvedColor || 'Unknown',
             status: form.status,
             odometer_km: parseInt(form.odometer_km, 10) || 0,
-        });
+        };
+
+        const { error: supaErr } = isEdit
+            ? await supabase.from('vehicles').update(payload).eq('id', initialData!.id)
+            : await supabase.from('vehicles').insert(payload);
         setSubmitting(false);
 
         if (supaErr) { setError(supaErr.message); }
@@ -140,10 +148,11 @@ export function AddVehicleModal({ open, onClose, onSuccess }: AddVehicleModalPro
                 maxHeight: '90vh',
                 overflowY: 'auto',
             }}>
-                {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>Add Vehicle</h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ff-text-muted)', padding: 4 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>
+                        {isEdit ? 'Edit Vehicle' : 'Add Vehicle'}
+                    </h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--ff-text-muted)', padding: 4 }}>
                         <X size={20} />
                     </button>
                 </div>
@@ -155,48 +164,26 @@ export function AddVehicleModal({ open, onClose, onSuccess }: AddVehicleModalPro
                 )}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-                    {/* Plate */}
                     <div>
                         <label style={LABEL_STYLE}>Plate Number *</label>
-                        <input
-                            style={INPUT_STYLE}
-                            placeholder="e.g. ALH 1234 ZM"
-                            value={form.plate}
-                            onChange={set('plate')}
-                            autoFocus
-                        />
+                        <input style={INPUT_STYLE} placeholder="e.g. ALH 1234 ZM" value={form.plate} onChange={set('plate')} autoFocus />
                     </div>
 
-                    {/* Make */}
                     <div>
                         <label style={LABEL_STYLE}>Make *</label>
                         <select style={INPUT_STYLE} value={form.make} onChange={set('make')}>
                             {MAKES.map(m => <option key={m} value={m}>{m}</option>)}
                         </select>
                         {form.make === 'Other' && (
-                            <input
-                                style={{ ...INPUT_STYLE, marginTop: 8 }}
-                                placeholder="Enter make"
-                                value={form.makeOther}
-                                onChange={set('makeOther')}
-                                autoFocus
-                            />
+                            <input style={{ ...INPUT_STYLE, marginTop: 8 }} placeholder="Enter make" value={form.makeOther} onChange={set('makeOther')} />
                         )}
                     </div>
 
-                    {/* Model */}
                     <div>
                         <label style={LABEL_STYLE}>Model *</label>
-                        <input
-                            style={INPUT_STYLE}
-                            placeholder="e.g. Corolla, Hilux, D22"
-                            value={form.model}
-                            onChange={set('model')}
-                        />
+                        <input style={INPUT_STYLE} placeholder="e.g. Corolla, Hilux, D22" value={form.model} onChange={set('model')} />
                     </div>
 
-                    {/* Year / Color */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
                             <label style={LABEL_STYLE}>Year</label>
@@ -214,16 +201,10 @@ export function AddVehicleModal({ open, onClose, onSuccess }: AddVehicleModalPro
                     {form.color === 'Other' && (
                         <div>
                             <label style={LABEL_STYLE}>Specify Color</label>
-                            <input
-                                style={INPUT_STYLE}
-                                placeholder="Enter color"
-                                value={form.colorOther}
-                                onChange={set('colorOther')}
-                            />
+                            <input style={INPUT_STYLE} placeholder="Enter color" value={form.colorOther} onChange={set('colorOther')} />
                         </div>
                     )}
 
-                    {/* Status / Odometer */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
                             <label style={LABEL_STYLE}>Status</label>
@@ -235,30 +216,22 @@ export function AddVehicleModal({ open, onClose, onSuccess }: AddVehicleModalPro
                         </div>
                         <div>
                             <label style={LABEL_STYLE}>Odometer (km)</label>
-                            <input
-                                type="number" min="0"
-                                style={INPUT_STYLE}
-                                placeholder="0"
-                                value={form.odometer_km}
-                                onChange={set('odometer_km')}
-                            />
+                            <input type="number" min="0" style={INPUT_STYLE} placeholder="0" value={form.odometer_km} onChange={set('odometer_km')} />
                         </div>
                     </div>
 
-                    {/* Actions */}
                     <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
                         <button type="button" onClick={onClose} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             background: 'var(--ff-navy)', color: 'var(--ff-text-muted)',
-                            border: '1px solid var(--ff-border)', cursor: 'pointer',
+                            border: '1px solid var(--ff-border)',
                         }}>Cancel</button>
                         <button type="submit" disabled={submitting} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             fontWeight: 600, background: submitting ? '#334155' : 'var(--ff-accent)',
                             color: 'white', border: 'none',
-                            cursor: submitting ? 'not-allowed' : 'pointer',
                         }}>
-                            {submitting ? 'Saving…' : 'Add Vehicle'}
+                            {submitting ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Vehicle'}
                         </button>
                     </div>
                 </form>

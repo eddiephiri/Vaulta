@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Plus, TrendingUp } from 'lucide-react';
+import { Plus, TrendingUp, Pencil } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useIncome } from '../hooks/useIncome';
 import { useVehicles } from '../hooks/useVehicles';
 import { useDrivers } from '../hooks/useDrivers';
 import { AddIncomeModal } from '../components/AddIncomeModal';
+import type { IncomeRecord } from '../types';
 
 const SOURCE_LABELS: Record<string, string> = {
     yango: 'Yango',
@@ -18,6 +19,7 @@ export function Income() {
     const [sourceFilter, setSourceFilter] = useState('');
     const [monthFilter, setMonthFilter] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [editing, setEditing] = useState<IncomeRecord | null>(null);
 
     const { vehicles } = useVehicles();
     const { drivers } = useDrivers(true);  // active only
@@ -33,6 +35,10 @@ export function Income() {
     const fmt = (n: number) =>
         n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    const openAdd = () => { setEditing(null); setShowModal(true); };
+    const openEdit = (r: IncomeRecord) => { setEditing(r); setShowModal(true); };
+    const handleClose = () => { setShowModal(false); setEditing(null); };
+
     return (
         <div>
             <PageHeader
@@ -42,7 +48,7 @@ export function Income() {
                     <button
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
-                        onClick={() => setShowModal(true)}
+                        onClick={openAdd}
                     >
                         <Plus size={16} />
                         Add Income
@@ -130,9 +136,20 @@ export function Income() {
                                 </p>
                                 {r.notes && <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>{r.notes}</p>}
                             </div>
-                            <p className="font-bold text-base flex-shrink-0 ml-4" style={{ color: '#22c55e' }}>
-                                ZMW {fmt(Number(r.amount_zmw))}
-                            </p>
+                            <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                                <p className="font-bold text-base" style={{ color: '#22c55e' }}>
+                                    ZMW {fmt(Number(r.amount_zmw))}
+                                </p>
+                                <button
+                                    onClick={() => openEdit(r)}
+                                    title="Edit record"
+                                    style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                >
+                                    <Pencil size={14} />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -140,10 +157,11 @@ export function Income() {
 
             <AddIncomeModal
                 open={showModal}
-                onClose={() => setShowModal(false)}
+                onClose={handleClose}
                 onSuccess={refetch}
                 vehicles={vehicles}
                 drivers={drivers}
+                initialData={editing ?? undefined}
             />
         </div>
     );

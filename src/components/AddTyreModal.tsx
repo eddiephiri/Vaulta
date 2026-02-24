@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { Vehicle, TyrePosition } from '../types';
+import type { Vehicle, TyrePosition, TyreChange } from '../types';
 
 interface AddTyreModalProps {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
     vehicles: Vehicle[];
+    initialData?: TyreChange;
 }
 
 const TYRE_BRANDS = [
@@ -51,7 +52,9 @@ const LABEL_STYLE = {
     marginBottom: 4,
 } as const;
 
-export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModalProps) {
+export function AddTyreModal({ open, onClose, onSuccess, vehicles, initialData }: AddTyreModalProps) {
+    const isEdit = !!initialData;
+
     const [form, setForm] = useState({
         vehicle_id: '',
         date: new Date().toISOString().slice(0, 10),
@@ -68,7 +71,23 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (open) {
+        if (!open) return;
+        if (initialData) {
+            const knownBrand = TYRE_BRANDS.includes(initialData.brand ?? '') ? (initialData.brand ?? 'Bridgestone') : 'Other';
+            const knownSize = TYRE_SIZES.includes(initialData.tyre_size ?? '') ? (initialData.tyre_size ?? '195/65R15') : 'Other';
+            setForm({
+                vehicle_id: initialData.vehicle_id,
+                date: initialData.date,
+                position: initialData.position,
+                brand: knownBrand,
+                brandOther: knownBrand === 'Other' ? (initialData.brand ?? '') : '',
+                tyre_size: knownSize,
+                tyreSizeOther: knownSize === 'Other' ? (initialData.tyre_size ?? '') : '',
+                cost_zmw: String(initialData.cost_zmw),
+                odometer_km: initialData.odometer_km != null ? String(initialData.odometer_km) : '',
+                notes: initialData.notes ?? '',
+            });
+        } else {
             setForm({
                 vehicle_id: vehicles[0]?.id ?? '',
                 date: new Date().toISOString().slice(0, 10),
@@ -81,9 +100,9 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
                 odometer_km: '',
                 notes: '',
             });
-            setError(null);
         }
-    }, [open, vehicles]);
+        setError(null);
+    }, [open, initialData, vehicles]);
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -110,7 +129,7 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
         }
 
         setSubmitting(true);
-        const { error: supaErr } = await supabase.from('tyre_changes').insert({
+        const payload = {
             vehicle_id: form.vehicle_id,
             date: form.date,
             position: form.position,
@@ -119,7 +138,11 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
             cost_zmw: Number(form.cost_zmw),
             odometer_km: form.odometer_km ? Number(form.odometer_km) : null,
             notes: form.notes.trim() || null,
-        });
+        };
+
+        const { error: supaErr } = isEdit
+            ? await supabase.from('tyre_changes').update(payload).eq('id', initialData!.id)
+            : await supabase.from('tyre_changes').insert(payload);
         setSubmitting(false);
 
         if (supaErr) { setError(supaErr.message); }
@@ -141,8 +164,10 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
                 maxHeight: '90vh', overflowY: 'auto',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>Record Tyre Change</h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ff-text-muted)', padding: 4 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>
+                        {isEdit ? 'Edit Tyre Change' : 'Record Tyre Change'}
+                    </h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--ff-text-muted)', padding: 4 }}>
                         <X size={20} />
                     </button>
                 </div>
@@ -154,7 +179,6 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
                 )}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {/* Vehicle */}
                     <div>
                         <label style={LABEL_STYLE}>Vehicle *</label>
                         <select style={INPUT_STYLE} value={form.vehicle_id} onChange={set('vehicle_id')}>
@@ -164,7 +188,6 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
                         </select>
                     </div>
 
-                    {/* Date / Position */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
                             <label style={LABEL_STYLE}>Date *</label>
@@ -178,7 +201,6 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
                         </div>
                     </div>
 
-                    {/* Brand */}
                     <div>
                         <label style={LABEL_STYLE}>Brand</label>
                         <select style={INPUT_STYLE} value={form.brand} onChange={set('brand')}>
@@ -190,7 +212,6 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
                         )}
                     </div>
 
-                    {/* Tyre Size */}
                     <div>
                         <label style={LABEL_STYLE}>Tyre Size</label>
                         <select style={INPUT_STYLE} value={form.tyre_size} onChange={set('tyre_size')}>
@@ -202,7 +223,6 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
                         )}
                     </div>
 
-                    {/* Cost / Odometer */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
                             <label style={LABEL_STYLE}>Cost (ZMW) *</label>
@@ -214,7 +234,6 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
                         </div>
                     </div>
 
-                    {/* Notes */}
                     <div>
                         <label style={LABEL_STYLE}>Notes</label>
                         <textarea rows={2} style={{ ...INPUT_STYLE, resize: 'vertical' } as React.CSSProperties}
@@ -225,13 +244,13 @@ export function AddTyreModal({ open, onClose, onSuccess, vehicles }: AddTyreModa
                         <button type="button" onClick={onClose} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             background: 'var(--ff-navy)', color: 'var(--ff-text-muted)',
-                            border: '1px solid var(--ff-border)', cursor: 'pointer',
+                            border: '1px solid var(--ff-border)',
                         }}>Cancel</button>
                         <button type="submit" disabled={submitting} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             fontWeight: 600, background: submitting ? '#334155' : 'var(--ff-accent)',
-                            color: 'white', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
-                        }}>{submitting ? 'Saving…' : 'Record Tyre Change'}</button>
+                            color: 'white', border: 'none',
+                        }}>{submitting ? 'Saving…' : isEdit ? 'Save Changes' : 'Record Tyre Change'}</button>
                     </div>
                 </form>
             </div>

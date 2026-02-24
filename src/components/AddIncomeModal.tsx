@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { Vehicle, IncomeSource, Driver } from '../types';
+import type { Vehicle, IncomeSource, Driver, IncomeRecord } from '../types';
 
 interface AddIncomeModalProps {
     open: boolean;
@@ -17,6 +17,7 @@ interface AddIncomeModalProps {
         expected_date: string;
         is_salary_week: boolean;
     };
+    initialData?: IncomeRecord;
 }
 
 const SOURCES: { value: IncomeSource; label: string }[] = [
@@ -47,7 +48,8 @@ const LABEL_STYLE = {
     marginBottom: 4,
 } as const;
 
-export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [], prefill }: AddIncomeModalProps) {
+export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [], prefill, initialData }: AddIncomeModalProps) {
+    const isEdit = !!initialData;
     const today = new Date().toISOString().slice(0, 10);
 
     const [form, setForm] = useState({
@@ -66,7 +68,20 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (open) {
+        if (!open) return;
+        if (initialData) {
+            setForm({
+                vehicle_id: initialData.vehicle_id,
+                date: initialData.date,
+                amount_zmw: String(initialData.amount_zmw),
+                source: initialData.source,
+                period_start: initialData.period_start ?? '',
+                period_end: initialData.period_end ?? '',
+                driver_id: initialData.driver_id ?? '',
+                reference: initialData.reference ?? '',
+                notes: initialData.notes ?? '',
+            });
+        } else {
             setForm({
                 vehicle_id: prefill?.vehicle_id ?? vehicles[0]?.id ?? '',
                 date: today,
@@ -78,11 +93,11 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                 reference: '',
                 notes: '',
             });
-            setLateReason('none');
-            setError(null);
         }
+        setLateReason('none');
+        setError(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, vehicles, prefill]);
+    }, [open, vehicles, prefill, initialData]);
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -107,7 +122,28 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
 
         setSubmitting(true);
 
-        // If logged from an overdue reminder, determine final status
+        const payload = {
+            vehicle_id: form.vehicle_id,
+            date: form.date,
+            amount_zmw: Number(form.amount_zmw),
+            source: form.source,
+            period_start: form.period_start || null,
+            period_end: form.period_end || null,
+            driver_id: form.driver_id || null,
+            reference: form.reference.trim() || null,
+            notes: form.notes.trim() || null,
+        };
+
+        if (isEdit) {
+            const { error: supaErr } = await supabase.from('income').update(payload).eq('id', initialData!.id);
+            setSubmitting(false);
+            if (supaErr) { setError(supaErr.message); return; }
+            onSuccess();
+            onClose();
+            return;
+        }
+
+        // Create mode — honour cashing schedule link
         const cashingStatus =
             lateReason === 'late_driver' ? 'late_driver'
                 : lateReason === 'late_admin' ? 'late_admin'
@@ -116,16 +152,8 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
         const { data: incomeData, error: supaErr } = await supabase
             .from('income')
             .insert({
-                vehicle_id: form.vehicle_id,
-                date: form.date,
-                amount_zmw: Number(form.amount_zmw),
-                source: form.source,
-                period_start: form.period_start || null,
-                period_end: form.period_end || null,
-                driver_id: form.driver_id || null,
+                ...payload,
                 expected_cashing_id: prefill?.expected_cashing_id ?? null,
-                reference: form.reference.trim() || null,
-                notes: form.notes.trim() || null,
             })
             .select('id')
             .single();
@@ -136,7 +164,6 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
             return;
         }
 
-        // Update the expected_cashing status if this was a reminder-triggered entry
         if (prefill?.expected_cashing_id && incomeData?.id) {
             await supabase
                 .from('expected_cashings')
@@ -167,14 +194,15 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                 maxHeight: '90vh', overflowY: 'auto',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>Add Income Record</h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ff-text-muted)', padding: 4 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>
+                        {isEdit ? 'Edit Income Record' : 'Add Income Record'}
+                    </h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--ff-text-muted)', padding: 4 }}>
                         <X size={20} />
                     </button>
                 </div>
 
-                {/* Salary week hint */}
-                {isSalaryWeek && (
+                {isSalaryWeek && !isEdit && (
                     <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: '#a855f715', border: '1px solid #a855f740', fontSize: 13, color: '#a855f7', display: 'flex', gap: 8 }}>
                         <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
                         This is the salary week — remember to log driver salary and any service costs as separate expenses.
@@ -188,7 +216,6 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                 )}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {/* Vehicle */}
                     <div>
                         <label style={LABEL_STYLE}>Vehicle *</label>
                         <select style={INPUT_STYLE} value={form.vehicle_id} onChange={set('vehicle_id')}>
@@ -198,7 +225,6 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                         </select>
                     </div>
 
-                    {/* Date / Source */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
                             <label style={LABEL_STYLE}>Cashing Date *</label>
@@ -212,7 +238,6 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                         </div>
                     </div>
 
-                    {/* Period */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
                             <label style={LABEL_STYLE}>Period From</label>
@@ -227,14 +252,12 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                         The week this cashing covers (gross amount before deductions).
                     </p>
 
-                    {/* Amount */}
                     <div>
                         <label style={LABEL_STYLE}>Gross Amount (ZMW) *</label>
                         <input type="number" min="0.01" step="0.01" style={INPUT_STYLE} placeholder="0.00"
                             value={form.amount_zmw} onChange={set('amount_zmw')} autoFocus />
                     </div>
 
-                    {/* Driver */}
                     {drivers.length > 0 && (
                         <div>
                             <label style={LABEL_STYLE}>Driver (optional)</label>
@@ -245,15 +268,13 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                         </div>
                     )}
 
-                    {/* Reference */}
                     <div>
                         <label style={LABEL_STYLE}>Reference / Trip ID</label>
                         <input style={INPUT_STYLE} placeholder="e.g. Yango payout ref, invoice #"
                             value={form.reference} onChange={set('reference')} />
                     </div>
 
-                    {/* Late acknowledgement — shown when logging from a reminder */}
-                    {isFromReminder && (
+                    {isFromReminder && !isEdit && (
                         <div>
                             <label style={LABEL_STYLE}>Was the cashing late?</label>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -275,7 +296,6 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                         </div>
                     )}
 
-                    {/* Notes */}
                     <div>
                         <label style={LABEL_STYLE}>Notes</label>
                         <textarea rows={2} style={{ ...INPUT_STYLE, resize: 'vertical' } as React.CSSProperties}
@@ -286,13 +306,13 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                         <button type="button" onClick={onClose} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             background: 'var(--ff-navy)', color: 'var(--ff-text-muted)',
-                            border: '1px solid var(--ff-border)', cursor: 'pointer',
+                            border: '1px solid var(--ff-border)',
                         }}>Cancel</button>
                         <button type="submit" disabled={submitting} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             fontWeight: 600, background: submitting ? '#334155' : '#22c55e',
-                            color: 'white', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
-                        }}>{submitting ? 'Saving…' : 'Add Income'}</button>
+                            color: 'white', border: 'none',
+                        }}>{submitting ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Income'}</button>
                     </div>
                 </form>
             </div>

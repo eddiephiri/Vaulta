@@ -1,17 +1,23 @@
 import { useState } from 'react';
-import { Plus, Users, Phone, Car, Banknote } from 'lucide-react';
+import { Plus, Users, Phone, Car, Banknote, Pencil } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useDrivers } from '../hooks/useDrivers';
 import { useVehicles } from '../hooks/useVehicles';
 import { AddDriverModal } from '../components/AddDriverModal';
+import type { Driver } from '../types';
 
 export function Drivers() {
     const [showModal, setShowModal] = useState(false);
+    const [editing, setEditing] = useState<Driver | null>(null);
     const { drivers, loading, error, refetch } = useDrivers();
     const { vehicles } = useVehicles();
 
     const fmt = (n: number) =>
         `ZMW ${n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const openAdd = () => { setEditing(null); setShowModal(true); };
+    const openEdit = (d: Driver) => { setEditing(d); setShowModal(true); };
+    const handleClose = () => { setShowModal(false); setEditing(null); };
 
     return (
         <div>
@@ -22,7 +28,7 @@ export function Drivers() {
                     <button
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
-                        onClick={() => setShowModal(true)}
+                        onClick={openAdd}
                     >
                         <Plus size={16} />
                         Add Driver
@@ -71,15 +77,26 @@ export function Drivers() {
                                         )}
                                     </div>
                                 </div>
-                                <span
-                                    className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                    style={{
-                                        background: driver.active ? '#22c55e20' : '#ef444420',
-                                        color: driver.active ? '#22c55e' : '#ef4444',
-                                    }}
-                                >
-                                    {driver.active ? 'Active' : 'Inactive'}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span
+                                        className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                        style={{
+                                            background: driver.active ? '#22c55e20' : '#ef444420',
+                                            color: driver.active ? '#22c55e' : '#ef4444',
+                                        }}
+                                    >
+                                        {driver.active ? 'Active' : 'Inactive'}
+                                    </span>
+                                    <button
+                                        onClick={() => openEdit(driver)}
+                                        title="Edit driver"
+                                        style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                    >
+                                        <Pencil size={14} />
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Details */}
@@ -122,9 +139,10 @@ export function Drivers() {
 
             <AddDriverModal
                 open={showModal}
-                onClose={() => setShowModal(false)}
+                onClose={handleClose}
                 onSuccess={refetch}
                 vehicles={vehicles}
+                initialData={editing ?? undefined}
             />
         </div>
     );

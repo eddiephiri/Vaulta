@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { Vehicle } from '../types';
+import type { Vehicle, Driver } from '../types';
 
 interface Props {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
     vehicles: Vehicle[];
+    initialData?: Driver;
 }
 
 const INITIAL = {
@@ -21,10 +22,37 @@ const INITIAL = {
     active: true,
 };
 
-export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
+export function AddDriverModal({ open, onClose, onSuccess, vehicles, initialData }: Props) {
+    const isEdit = !!initialData;
+
     const [form, setForm] = useState(INITIAL);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        if (initialData) {
+            setForm({
+                name: initialData.name,
+                phone: initialData.phone ?? '',
+                license_number: initialData.license_number ?? '',
+                vehicle_id: initialData.vehicle_id ?? '',
+                salary_zmw: String(initialData.salary_zmw ?? ''),
+                hire_date: initialData.hire_date ?? '',
+                notes: initialData.notes ?? '',
+                active: initialData.active ?? true,
+            });
+        } else {
+            setForm(INITIAL);
+        }
+        setError(null);
+    }, [open, initialData]);
+
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [onClose]);
 
     if (!open) return null;
 
@@ -49,12 +77,14 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
             active: form.active,
         };
 
-        const { error: supaErr } = await supabase.from('drivers').insert(payload);
+        const { error: supaErr } = isEdit
+            ? await supabase.from('drivers').update(payload).eq('id', initialData!.id)
+            : await supabase.from('drivers').insert(payload);
 
         if (supaErr) {
             setError(supaErr.message);
         } else {
-            setForm(INITIAL);
+            if (!isEdit) setForm(INITIAL);
             onSuccess();
             onClose();
         }
@@ -89,7 +119,7 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
                     <X size={18} />
                 </button>
 
-                <h2 className="text-lg font-bold mb-5">Add Driver</h2>
+                <h2 className="text-lg font-bold mb-5">{isEdit ? 'Edit Driver' : 'Add Driver'}</h2>
 
                 {error && (
                     <div className="mb-4 p-3 rounded-lg text-sm"
@@ -99,7 +129,6 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Name */}
                     <div>
                         <label style={labelStyle}>Full Name *</label>
                         <input
@@ -111,7 +140,6 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
                         />
                     </div>
 
-                    {/* Phone */}
                     <div>
                         <label style={labelStyle}>Phone Number</label>
                         <input
@@ -122,7 +150,6 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
                         />
                     </div>
 
-                    {/* License */}
                     <div>
                         <label style={labelStyle}>Driving Licence Number</label>
                         <input
@@ -133,7 +160,6 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
                         />
                     </div>
 
-                    {/* Vehicle */}
                     <div>
                         <label style={labelStyle}>Assigned Vehicle</label>
                         <select
@@ -150,7 +176,6 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
                         </select>
                     </div>
 
-                    {/* Salary */}
                     <div>
                         <label style={labelStyle}>Monthly Salary (ZMW)</label>
                         <input
@@ -164,7 +189,6 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
                         />
                     </div>
 
-                    {/* Hire Date */}
                     <div>
                         <label style={labelStyle}>Hire Date</label>
                         <input
@@ -175,7 +199,6 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
                         />
                     </div>
 
-                    {/* Notes */}
                     <div>
                         <label style={labelStyle}>Notes</label>
                         <textarea
@@ -186,6 +209,18 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
                             placeholder="Any additional notes…"
                         />
                     </div>
+
+                    {isEdit && (
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', color: 'var(--ff-text-primary)' }}>
+                            <input
+                                type="checkbox"
+                                checked={form.active}
+                                onChange={e => set('active', e.target.checked)}
+                                style={{ accentColor: 'var(--ff-accent)', width: 16, height: 16 }}
+                            />
+                            Active driver
+                        </label>
+                    )}
 
                     <div className="flex gap-3 pt-2">
                         <button
@@ -202,7 +237,7 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles }: Props) {
                             className="flex-1 py-2 rounded-lg text-sm font-medium"
                             style={{ background: 'var(--ff-accent)', color: 'white', opacity: saving ? 0.7 : 1 }}
                         >
-                            {saving ? 'Saving…' : 'Add Driver'}
+                            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Driver'}
                         </button>
                     </div>
                 </form>

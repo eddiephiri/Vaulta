@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Plus, CircleDot } from 'lucide-react';
+import { Plus, CircleDot, Pencil } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useTyreChanges } from '../hooks/useTyreChanges';
 import { useVehicles } from '../hooks/useVehicles';
 import { AddTyreModal } from '../components/AddTyreModal';
+import type { TyreChange } from '../types';
 
 const POSITION_LABELS: Record<string, string> = {
     front_left: 'Front Left',
@@ -17,6 +18,7 @@ export function TyreChanges() {
     const [vehicleFilter, setVehicleFilter] = useState('');
     const [positionFilter, setPositionFilter] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [editing, setEditing] = useState<TyreChange | null>(null);
 
     const { vehicles } = useVehicles();
     const { records, loading, error, refetch } = useTyreChanges(vehicleFilter || undefined);
@@ -28,6 +30,10 @@ export function TyreChanges() {
     const fmt = (n: number) =>
         n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    const openAdd = () => { setEditing(null); setShowModal(true); };
+    const openEdit = (r: TyreChange) => { setEditing(r); setShowModal(true); };
+    const handleClose = () => { setShowModal(false); setEditing(null); };
+
     return (
         <div>
             <PageHeader
@@ -37,7 +43,7 @@ export function TyreChanges() {
                     <button
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
-                        onClick={() => setShowModal(true)}
+                        onClick={openAdd}
                     >
                         <Plus size={16} />
                         Record Tyre Change
@@ -115,11 +121,22 @@ export function TyreChanges() {
                                         {r.odometer_km ? ` · ${Number(r.odometer_km).toLocaleString()} km` : ''}
                                     </p>
                                 </div>
-                                <div className="text-right flex-shrink-0 ml-4">
-                                    <p className="font-bold text-sm" style={{ color: '#ef4444' }}>
-                                        ZMW {fmt(Number(r.cost_zmw))}
-                                    </p>
-                                    <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>{r.date}</p>
+                                <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                                    <div className="text-right">
+                                        <p className="font-bold text-sm" style={{ color: '#ef4444' }}>
+                                            ZMW {fmt(Number(r.cost_zmw))}
+                                        </p>
+                                        <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>{r.date}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => openEdit(r)}
+                                        title="Edit record"
+                                        style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                    >
+                                        <Pencil size={14} />
+                                    </button>
                                 </div>
                             </div>
                             {r.notes && (
@@ -134,9 +151,10 @@ export function TyreChanges() {
 
             <AddTyreModal
                 open={showModal}
-                onClose={() => setShowModal(false)}
+                onClose={handleClose}
                 onSuccess={refetch}
                 vehicles={vehicles}
+                initialData={editing ?? undefined}
             />
         </div>
     );

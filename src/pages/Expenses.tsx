@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Plus, Receipt } from 'lucide-react';
+import { Plus, Receipt, Pencil, Lock } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useExpenses } from '../hooks/useExpenses';
 import { useVehicles } from '../hooks/useVehicles';
 import { useDrivers } from '../hooks/useDrivers';
 import { AddExpenseModal } from '../components/AddExpenseModal';
+import type { ExpenseRecord } from '../types';
 
 const EXPENSE_CATEGORIES = ['fuel', 'service', 'tyre', 'licensing', 'insurance', 'repairs', 'salary', 'wash', 'other'] as const;
 const CAT_LABELS: Record<string, string> = {
@@ -21,6 +22,7 @@ export function Expenses() {
     const [categoryFilter, setCategoryFilter] = useState('');
     const [monthFilter, setMonthFilter] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [editing, setEditing] = useState<ExpenseRecord | null>(null);
 
     const { vehicles } = useVehicles();
     const { drivers } = useDrivers(true);  // active only
@@ -36,13 +38,16 @@ export function Expenses() {
     const fmt = (n: number) =>
         n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    // category totals for the month
     const catTotals = EXPENSE_CATEGORIES.reduce<Record<string, number>>((acc, cat) => {
         acc[cat] = records
             .filter(r => r.category === cat)
             .reduce((s, r) => s + Number(r.amount_zmw), 0);
         return acc;
     }, {});
+
+    const openAdd = () => { setEditing(null); setShowModal(true); };
+    const openEdit = (r: ExpenseRecord) => { setEditing(r); setShowModal(true); };
+    const handleClose = () => { setShowModal(false); setEditing(null); };
 
     return (
         <div>
@@ -53,7 +58,7 @@ export function Expenses() {
                     <button
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
-                        onClick={() => setShowModal(true)}
+                        onClick={openAdd}
                     >
                         <Plus size={16} />
                         Add Expense
@@ -148,6 +153,7 @@ export function Expenses() {
             ) : (
                 <div className="space-y-3">
                     {filtered.map(r => {
+                        const isAuto = !!r.source_table;
                         const color = CAT_COLORS[r.category] ?? '#94a3b8';
                         return (
                             <div key={r.id} className="flex items-center justify-between rounded-xl px-5 py-4"
@@ -158,7 +164,7 @@ export function Expenses() {
                                             style={{ background: `${color}20`, color }}>
                                             {CAT_LABELS[r.category] ?? r.category}
                                         </span>
-                                        {r.source_table && (
+                                        {isAuto && (
                                             <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                                                 style={{ background: '#33415530', color: 'var(--ff-text-muted)', border: '1px solid var(--ff-border)' }}>
                                                 Auto
@@ -172,9 +178,26 @@ export function Expenses() {
                                         <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>{r.description}</p>
                                     )}
                                 </div>
-                                <p className="font-bold text-base flex-shrink-0 ml-4" style={{ color: '#ef4444' }}>
-                                    ZMW {fmt(Number(r.amount_zmw))}
-                                </p>
+                                <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                                    <p className="font-bold text-base" style={{ color: '#ef4444' }}>
+                                        ZMW {fmt(Number(r.amount_zmw))}
+                                    </p>
+                                    {isAuto ? (
+                                        <span title="Auto-generated — edit the source record" style={{ padding: 4, color: 'var(--ff-text-muted)' }}>
+                                            <Lock size={14} />
+                                        </span>
+                                    ) : (
+                                        <button
+                                            onClick={() => openEdit(r)}
+                                            title="Edit expense"
+                                            style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                            onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                            onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}
@@ -183,10 +206,11 @@ export function Expenses() {
 
             <AddExpenseModal
                 open={showModal}
-                onClose={() => setShowModal(false)}
+                onClose={handleClose}
                 onSuccess={refetch}
                 vehicles={vehicles}
                 drivers={drivers}
+                initialData={editing ?? undefined}
             />
         </div>
     );

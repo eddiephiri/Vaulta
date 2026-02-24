@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { Vehicle } from '../types';
+import type { Vehicle, ServiceRecord } from '../types';
 
 interface AddServiceModalProps {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
     vehicles: Vehicle[];
+    initialData?: ServiceRecord;
 }
 
 const SERVICE_TYPES = [
@@ -40,7 +41,9 @@ const LABEL_STYLE = {
     marginBottom: 4,
 } as const;
 
-export function AddServiceModal({ open, onClose, onSuccess, vehicles }: AddServiceModalProps) {
+export function AddServiceModal({ open, onClose, onSuccess, vehicles, initialData }: AddServiceModalProps) {
+    const isEdit = !!initialData;
+
     const [form, setForm] = useState({
         vehicle_id: '',
         date: new Date().toISOString().slice(0, 10),
@@ -55,7 +58,20 @@ export function AddServiceModal({ open, onClose, onSuccess, vehicles }: AddServi
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (open) {
+        if (!open) return;
+        if (initialData) {
+            const knownDesc = SERVICE_TYPES.includes(initialData.description) ? initialData.description : 'Other';
+            setForm({
+                vehicle_id: initialData.vehicle_id,
+                date: initialData.date,
+                description: knownDesc,
+                descriptionOther: knownDesc === 'Other' ? initialData.description : '',
+                service_provider: initialData.service_provider ?? '',
+                cost_zmw: String(initialData.cost_zmw),
+                odometer_km: initialData.odometer_km != null ? String(initialData.odometer_km) : '',
+                notes: initialData.notes ?? '',
+            });
+        } else {
             setForm({
                 vehicle_id: vehicles[0]?.id ?? '',
                 date: new Date().toISOString().slice(0, 10),
@@ -66,9 +82,9 @@ export function AddServiceModal({ open, onClose, onSuccess, vehicles }: AddServi
                 odometer_km: '',
                 notes: '',
             });
-            setError(null);
         }
-    }, [open, vehicles]);
+        setError(null);
+    }, [open, initialData, vehicles]);
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -95,7 +111,7 @@ export function AddServiceModal({ open, onClose, onSuccess, vehicles }: AddServi
         }
 
         setSubmitting(true);
-        const { error: supaErr } = await supabase.from('service_history').insert({
+        const payload = {
             vehicle_id: form.vehicle_id,
             date: form.date,
             description: resolvedDesc,
@@ -103,7 +119,11 @@ export function AddServiceModal({ open, onClose, onSuccess, vehicles }: AddServi
             cost_zmw: Number(form.cost_zmw),
             odometer_km: form.odometer_km ? Number(form.odometer_km) : null,
             notes: form.notes.trim() || null,
-        });
+        };
+
+        const { error: supaErr } = isEdit
+            ? await supabase.from('service_history').update(payload).eq('id', initialData!.id)
+            : await supabase.from('service_history').insert(payload);
         setSubmitting(false);
 
         if (supaErr) { setError(supaErr.message); }
@@ -125,8 +145,10 @@ export function AddServiceModal({ open, onClose, onSuccess, vehicles }: AddServi
                 maxHeight: '90vh', overflowY: 'auto',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>Log Service Event</h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ff-text-muted)', padding: 4 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>
+                        {isEdit ? 'Edit Service Record' : 'Log Service Event'}
+                    </h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--ff-text-muted)', padding: 4 }}>
                         <X size={20} />
                     </button>
                 </div>
@@ -138,7 +160,6 @@ export function AddServiceModal({ open, onClose, onSuccess, vehicles }: AddServi
                 )}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {/* Vehicle */}
                     <div>
                         <label style={LABEL_STYLE}>Vehicle *</label>
                         <select style={INPUT_STYLE} value={form.vehicle_id} onChange={set('vehicle_id')}>
@@ -148,30 +169,22 @@ export function AddServiceModal({ open, onClose, onSuccess, vehicles }: AddServi
                         </select>
                     </div>
 
-                    {/* Date */}
                     <div>
                         <label style={LABEL_STYLE}>Service Date *</label>
                         <input type="date" style={INPUT_STYLE} value={form.date} onChange={set('date')} />
                     </div>
 
-                    {/* Service Type */}
                     <div>
                         <label style={LABEL_STYLE}>Service Type *</label>
                         <select style={INPUT_STYLE} value={form.description} onChange={set('description')}>
                             {SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                         {form.description === 'Other' && (
-                            <input
-                                style={{ ...INPUT_STYLE, marginTop: 8 }}
-                                placeholder="Describe the service"
-                                value={form.descriptionOther}
-                                onChange={set('descriptionOther')}
-                                autoFocus
-                            />
+                            <input style={{ ...INPUT_STYLE, marginTop: 8 }} placeholder="Describe the service"
+                                value={form.descriptionOther} onChange={set('descriptionOther')} autoFocus />
                         )}
                     </div>
 
-                    {/* Service Provider / Cost */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
                             <label style={LABEL_STYLE}>Service Provider</label>
@@ -183,13 +196,11 @@ export function AddServiceModal({ open, onClose, onSuccess, vehicles }: AddServi
                         </div>
                     </div>
 
-                    {/* Odometer */}
                     <div>
                         <label style={LABEL_STYLE}>Odometer at Service (km)</label>
                         <input type="number" min="0" style={INPUT_STYLE} placeholder="e.g. 45000" value={form.odometer_km} onChange={set('odometer_km')} />
                     </div>
 
-                    {/* Notes */}
                     <div>
                         <label style={LABEL_STYLE}>Notes</label>
                         <textarea rows={2} style={{ ...INPUT_STYLE, resize: 'vertical' } as React.CSSProperties}
@@ -200,13 +211,13 @@ export function AddServiceModal({ open, onClose, onSuccess, vehicles }: AddServi
                         <button type="button" onClick={onClose} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             background: 'var(--ff-navy)', color: 'var(--ff-text-muted)',
-                            border: '1px solid var(--ff-border)', cursor: 'pointer',
+                            border: '1px solid var(--ff-border)',
                         }}>Cancel</button>
                         <button type="submit" disabled={submitting} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             fontWeight: 600, background: submitting ? '#334155' : 'var(--ff-accent)',
-                            color: 'white', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
-                        }}>{submitting ? 'Saving…' : 'Log Service'}</button>
+                            color: 'white', border: 'none',
+                        }}>{submitting ? 'Saving…' : isEdit ? 'Save Changes' : 'Log Service'}</button>
                     </div>
                 </form>
             </div>
