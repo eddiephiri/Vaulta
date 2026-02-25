@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { Vehicle, IncomeSource } from '../types';
+import type { Vehicle, IncomeSource, Driver } from '../types';
 
 interface Props {
     open: boolean;
     onClose: () => void;
     onSuccess: () => void;
     vehicles: Vehicle[];
+    drivers: Driver[];  // all drivers (active or inactive) for hire-date lookup
 }
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -25,13 +26,26 @@ const INITIAL = {
     cashing_day_of_week: '' as string, // '' = no fixed day
     cycle_weeks: '4',
     salary_week: '4',
+    anchor_date: '',   // populated automatically from driver hire_date
     notes: '',
 };
 
-export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles }: Props) {
+export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles, drivers }: Props) {
     const [form, setForm] = useState(INITIAL);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Auto-fill anchor_date when vehicle changes — use assigned driver's hire_date
+    useEffect(() => {
+        if (!form.vehicle_id) {
+            setForm(f => ({ ...f, anchor_date: '' }));
+            return;
+        }
+        const assignedDriver = drivers.find(d => d.vehicle_id === form.vehicle_id);
+        const hireDate = assignedDriver?.hire_date ?? '';
+        setForm(f => ({ ...f, anchor_date: f.anchor_date || hireDate }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [form.vehicle_id]);
 
     if (!open) return null;
 
@@ -48,6 +62,10 @@ export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles }: 
             setError('Salary week cannot be greater than cycle length');
             return;
         }
+        if (!form.anchor_date) {
+            setError('Please set the cycle start / driver hire date');
+            return;
+        }
 
         setSaving(true);
         setError(null);
@@ -58,6 +76,7 @@ export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles }: 
             cashing_day_of_week: form.cashing_day_of_week !== '' ? parseInt(form.cashing_day_of_week) : null,
             cycle_weeks: cycleWeeks,
             salary_week: salaryWeek,
+            anchor_date: form.anchor_date,
             notes: form.notes.trim() || null,
         };
 
@@ -73,7 +92,7 @@ export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles }: 
             return;
         }
 
-        // Generate expected cashings for the next 12 weeks
+        // Generate expected cashings for the next 12 weeks anchored to hire_date
         if (data?.id) {
             await supabase.rpc('generate_expected_cashings', {
                 p_schedule_id: data.id,
@@ -117,7 +136,8 @@ export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles }: 
 
                 <h2 className="text-lg font-bold mb-1">Add Cashing Schedule</h2>
                 <p className="text-xs mb-5" style={{ color: 'var(--ff-text-muted)' }}>
-                    Sets up the expected cashing rhythm for a vehicle. The app will alert you when a cashing is overdue.
+                    Sets up the expected cashing rhythm for a vehicle. Weeks are counted
+                    from the driver's hire date so the cycle never drifts.
                 </p>
 
                 {error && (
@@ -151,6 +171,20 @@ export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles }: 
                                 <option key={s.value} value={s.value}>{s.label}</option>
                             ))}
                         </select>
+                    </div>
+
+                    {/* Anchor Date */}
+                    <div>
+                        <label style={labelStyle}>Cycle Start Date (Driver Hire Date) *</label>
+                        <input type="date" style={inputStyle}
+                            value={form.anchor_date}
+                            onChange={e => set('anchor_date', e.target.value)}
+                            required
+                        />
+                        <p className="text-xs mt-1" style={{ color: 'var(--ff-text-muted)' }}>
+                            Week 1 of the cycle begins on this date. Auto-filled from the
+                            assigned driver's hire date when you select a vehicle.
+                        </p>
                     </div>
 
                     {/* Cashing Day */}
@@ -194,7 +228,7 @@ export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles }: 
                             ))}
                         </select>
                         <p className="text-xs mt-1" style={{ color: 'var(--ff-text-muted)' }}>
-                            Which week in the cycle the driver gets paid (and service is due for the bus).
+                            Which week in the cycle the driver gets paid.
                         </p>
                     </div>
 

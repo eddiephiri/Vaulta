@@ -45,6 +45,8 @@ export interface CashingSchedule {
     cashing_day_of_week?: CashingDayOfWeek | null; // null = no fixed day
     cycle_weeks: number;         // total weeks in cycle (default 4)
     salary_week: number;         // which week is pay week (default 4)
+    /** The real-world start of week 1. Defaults to schedule created_at. */
+    anchor_date?: string | null;
     active: boolean;
     notes?: string;
     created_at: string;

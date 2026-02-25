@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader';
 import { useCashingSchedules } from '../hooks/useCashingSchedules';
 import { useExpectedCashings } from '../hooks/useExpectedCashings';
 import { useVehicles } from '../hooks/useVehicles';
+import { useDrivers } from '../hooks/useDrivers';
 import { AddCashingScheduleModal } from '../components/AddCashingScheduleModal';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -25,6 +26,7 @@ export function CashingSchedules() {
     const { schedules, loading: schedLoading, error: schedError, refetch } = useCashingSchedules();
     const { overdue, loading: overdueLoading } = useExpectedCashings();
     const { vehicles } = useVehicles();
+    const { drivers } = useDrivers();   // all drivers for hire-date lookup
 
     return (
         <div>
@@ -55,6 +57,7 @@ export function CashingSchedules() {
                             <p key={c.id} className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>
                                 {c.vehicle?.plate} — {c.vehicle?.make} {c.vehicle?.model}
                                 {' · '}Expected {c.expected_date}
+                                {' · '}Week {c.week_number}
                                 {c.is_salary_week && (
                                     <span className="ml-2 px-1.5 py-0.5 rounded text-xs"
                                         style={{ background: '#a855f720', color: '#a855f7' }}>
@@ -106,7 +109,14 @@ export function CashingSchedules() {
                                     <RefreshCw size={14} style={{ color: 'var(--ff-text-muted)' }} />
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3 mt-3">
+                                <div className="grid grid-cols-4 gap-3 mt-3">
+                                    <div className="text-center rounded-lg p-2"
+                                        style={{ background: 'var(--ff-navy)' }}>
+                                        <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>Anchor</p>
+                                        <p className="text-xs font-semibold mt-0.5">
+                                            {s.anchor_date ?? '—'}
+                                        </p>
+                                    </div>
                                     <div className="text-center rounded-lg p-2"
                                         style={{ background: 'var(--ff-navy)' }}>
                                         <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>Cashing Day</p>
@@ -142,6 +152,7 @@ export function CashingSchedules() {
                 onClose={() => setShowModal(false)}
                 onSuccess={refetch}
                 vehicles={vehicles}
+                drivers={drivers}
             />
         </div>
     );
