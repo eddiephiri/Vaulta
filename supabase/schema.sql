@@ -150,7 +150,9 @@ create policy "Authenticated full access — expenses"
 -- ─── Useful views (optional) ────────────────────────────────
 
 -- Monthly income summary per vehicle
-create or replace view public.v_monthly_income as
+create or replace view public.v_monthly_income
+    with (security_invoker = true)
+as
 select
     vehicle_id,
     date_trunc('month', date) as month,
@@ -159,7 +161,9 @@ from public.income
 group by vehicle_id, date_trunc('month', date);
 
 -- Monthly expense summary per vehicle
-create or replace view public.v_monthly_expenses as
+create or replace view public.v_monthly_expenses
+    with (security_invoker = true)
+as
 select
     vehicle_id,
     date_trunc('month', date) as month,
@@ -169,7 +173,9 @@ from public.expenses
 group by vehicle_id, date_trunc('month', date), category;
 
 -- Licensing records expiring within the next 30 days
-create or replace view public.v_expiring_licenses as
+create or replace view public.v_expiring_licenses
+    with (security_invoker = true)
+as
 select
     l.*,
     v.plate,
