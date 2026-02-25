@@ -1,0 +1,23 @@
+# ── Node / build artefacts ───────────────────────────────────────────────────
+node_modules
+dist
+.cache
+
+# ── Environment / secrets (NEVER bake into image context) ────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Version control ───────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── Editor / OS noise ─────────────────────────────────────────────────────────
+.vscode
+.idea
+*.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
