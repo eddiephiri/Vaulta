@@ -6,13 +6,17 @@ interface UseAuthReturn {
     session: AuthSession | null;
     user: User | null;
     loading: boolean;
+    authEvent: string | null;
     signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
     signOut: () => Promise<void>;
+    resetPassword: (email: string) => Promise<{ error: Error | null }>;
+    updatePassword: (password: string) => Promise<{ error: Error | null }>;
 }
 
 export function useAuth(): UseAuthReturn {
     const [session, setSession] = useState<AuthSession | null>(null);
     const [loading, setLoading] = useState(true);
+    const [authEvent, setAuthEvent] = useState<string | null>(null);
 
     useEffect(() => {
         // Get initial session
@@ -22,8 +26,9 @@ export function useAuth(): UseAuthReturn {
         });
 
         // Listen for auth state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
             setSession(newSession);
+            setAuthEvent(event);
         });
 
         return () => subscription.unsubscribe();
@@ -38,11 +43,26 @@ export function useAuth(): UseAuthReturn {
         await supabase.auth.signOut();
     };
 
+    const resetPassword = async (email: string) => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+        });
+        return { error: error as Error | null };
+    };
+
+    const updatePassword = async (password: string) => {
+        const { error } = await supabase.auth.updateUser({ password });
+        return { error: error as Error | null };
+    };
+
     return {
         session,
         user: session?.user ?? null,
         loading,
+        authEvent,
         signIn,
         signOut,
+        resetPassword,
+        updatePassword,
     };
 }

@@ -3,30 +3,32 @@ import type { FormEvent } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Link } from 'react-router-dom';
 
-export function Login() {
-    const { signIn } = useAuth();
+export function ForgotPassword() {
+    const { resetPassword } = useAuth();
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setError(null);
+        setSuccess(false);
 
-        if (!email.trim() || !password) {
-            setError('Email and password are required.');
+        if (!email.trim()) {
+            setError('Email is required.');
             return;
         }
 
         setLoading(true);
-        const { error: authErr } = await signIn(email.trim(), password);
+        const { error: resetErr } = await resetPassword(email.trim());
         setLoading(false);
 
-        if (authErr) {
-            setError(authErr.message || 'Invalid email or password.');
+        if (resetErr) {
+            setError(resetErr.message || 'Failed to send reset link.');
+        } else {
+            setSuccess(true);
         }
-        // On success, App.tsx will detect the new session and redirect automatically.
     };
 
     return (
@@ -42,7 +44,6 @@ export function Login() {
                 width: '100%',
                 maxWidth: 400,
             }}>
-                {/* Logo / Brand */}
                 <div style={{ textAlign: 'center', marginBottom: 36 }}>
                     <div style={{
                         width: 56, height: 56,
@@ -58,11 +59,10 @@ export function Login() {
                         Vaulta
                     </h1>
                     <p style={{ fontSize: 14, color: 'var(--ff-text-muted)', marginTop: 6 }}>
-                        Sign in to manage your fleet
+                        Reset your password
                     </p>
                 </div>
 
-                {/* Card */}
                 <div style={{
                     background: 'var(--ff-surface)',
                     border: '1px solid var(--ff-border)',
@@ -83,6 +83,20 @@ export function Login() {
                         </div>
                     )}
 
+                    {success && (
+                        <div style={{
+                            marginBottom: 18,
+                            padding: '10px 14px',
+                            borderRadius: 8,
+                            background: '#22c55e20',
+                            color: '#22c55e',
+                            border: '1px solid #22c55e40',
+                            fontSize: 13,
+                        }}>
+                            Check your email for a password reset link.
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                         <div>
                             <label style={{ display: 'block', fontSize: 12, color: 'var(--ff-text-muted)', marginBottom: 6 }}>
@@ -95,30 +109,6 @@ export function Login() {
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                                 placeholder="admin@example.com"
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 14px',
-                                    borderRadius: 8,
-                                    background: 'var(--ff-navy)',
-                                    border: '1px solid var(--ff-border)',
-                                    color: 'var(--ff-text-primary)',
-                                    fontSize: 14,
-                                    outline: 'none',
-                                    boxSizing: 'border-box',
-                                }}
-                            />
-                        </div>
-
-                        <div>
-                            <label style={{ display: 'block', fontSize: 12, color: 'var(--ff-text-muted)', marginBottom: 6 }}>
-                                Password
-                            </label>
-                            <input
-                                type="password"
-                                autoComplete="current-password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                                placeholder="••••••••"
                                 style={{
                                     width: '100%',
                                     padding: '10px 14px',
@@ -150,13 +140,13 @@ export function Login() {
                                 transition: 'background 0.15s',
                             }}
                         >
-                            {loading ? 'Signing in…' : 'Sign In'}
+                            {loading ? 'Sending link…' : 'Send Reset Link'}
                         </button>
                     </form>
 
                     <div style={{ marginTop: 24, textAlign: 'center' }}>
-                        <Link to="/forgot-password" style={{ color: 'var(--ff-text-muted)', fontSize: 14, textDecoration: 'none' }}>
-                            Forgot password?
+                        <Link to="/" style={{ color: 'var(--ff-text-muted)', fontSize: 14, textDecoration: 'none' }}>
+                            &larr; Back to login
                         </Link>
                     </div>
                 </div>

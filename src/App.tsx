@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Vehicles } from './pages/Vehicles';
@@ -11,7 +12,22 @@ import { Reports } from './pages/Reports';
 import { Drivers } from './pages/Drivers';
 import { CashingSchedules } from './pages/CashingSchedules';
 import { Login } from './pages/Login';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { useAuth } from './hooks/useAuth';
+
+function AuthEventHandler() {
+  const { authEvent } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (authEvent === 'PASSWORD_RECOVERY') {
+      navigate('/reset-password');
+    }
+  }, [authEvent, navigate]);
+
+  return null;
+}
 
 export default function App() {
   const { session, loading } = useAuth();
@@ -31,27 +47,31 @@ export default function App() {
     );
   }
 
-  // Not signed in → show Login page (no routes exposed)
-  if (!session) {
-    return <Login />;
-  }
-
-  // Signed in → render full app
   return (
     <BrowserRouter>
+      <AuthEventHandler />
       <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="vehicles" element={<Vehicles />} />
-          <Route path="service-history" element={<ServiceHistory />} />
-          <Route path="tyre-changes" element={<TyreChanges />} />
-          <Route path="licensing" element={<Licensing />} />
-          <Route path="income" element={<Income />} />
-          <Route path="expenses" element={<Expenses />} />
-          <Route path="drivers" element={<Drivers />} />
-          <Route path="cashing-schedules" element={<CashingSchedules />} />
-          <Route path="reports" element={<Reports />} />
-        </Route>
+        {!session ? (
+          <>
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="*" element={<Login />} />
+          </>
+        ) : (
+          <Route element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="vehicles" element={<Vehicles />} />
+            <Route path="service-history" element={<ServiceHistory />} />
+            <Route path="tyre-changes" element={<TyreChanges />} />
+            <Route path="licensing" element={<Licensing />} />
+            <Route path="income" element={<Income />} />
+            <Route path="expenses" element={<Expenses />} />
+            <Route path="drivers" element={<Drivers />} />
+            <Route path="cashing-schedules" element={<CashingSchedules />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        )}
       </Routes>
     </BrowserRouter>
   );

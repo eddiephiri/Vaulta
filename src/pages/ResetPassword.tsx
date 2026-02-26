@@ -1,32 +1,49 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
-export function Login() {
-    const { signIn } = useAuth();
-    const [email, setEmail] = useState('');
+export function ResetPassword() {
+    const { updatePassword } = useAuth();
+    const navigate = useNavigate();
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setError(null);
+        setSuccess(false);
 
-        if (!email.trim() || !password) {
-            setError('Email and password are required.');
+        if (!password || !confirmPassword) {
+            setError('Please fill in both fields.');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError('Passwords do not match.');
+            return;
+        }
+
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters.');
             return;
         }
 
         setLoading(true);
-        const { error: authErr } = await signIn(email.trim(), password);
+        const { error: updateErr } = await updatePassword(password);
         setLoading(false);
 
-        if (authErr) {
-            setError(authErr.message || 'Invalid email or password.');
+        if (updateErr) {
+            setError(updateErr.message || 'Failed to update password.');
+        } else {
+            setSuccess(true);
+            setTimeout(() => {
+                navigate('/');
+            }, 2000);
         }
-        // On success, App.tsx will detect the new session and redirect automatically.
     };
 
     return (
@@ -42,7 +59,6 @@ export function Login() {
                 width: '100%',
                 maxWidth: 400,
             }}>
-                {/* Logo / Brand */}
                 <div style={{ textAlign: 'center', marginBottom: 36 }}>
                     <div style={{
                         width: 56, height: 56,
@@ -58,11 +74,10 @@ export function Login() {
                         Vaulta
                     </h1>
                     <p style={{ fontSize: 14, color: 'var(--ff-text-muted)', marginTop: 6 }}>
-                        Sign in to manage your fleet
+                        Enter your new password
                     </p>
                 </div>
 
-                {/* Card */}
                 <div style={{
                     background: 'var(--ff-surface)',
                     border: '1px solid var(--ff-border)',
@@ -83,39 +98,28 @@ export function Login() {
                         </div>
                     )}
 
+                    {success && (
+                        <div style={{
+                            marginBottom: 18,
+                            padding: '10px 14px',
+                            borderRadius: 8,
+                            background: '#22c55e20',
+                            color: '#22c55e',
+                            border: '1px solid #22c55e40',
+                            fontSize: 13,
+                        }}>
+                            Password updated successfully. Redirecting to login...
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                         <div>
                             <label style={{ display: 'block', fontSize: 12, color: 'var(--ff-text-muted)', marginBottom: 6 }}>
-                                Email
-                            </label>
-                            <input
-                                type="email"
-                                autoComplete="email"
-                                autoFocus
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                                placeholder="admin@example.com"
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 14px',
-                                    borderRadius: 8,
-                                    background: 'var(--ff-navy)',
-                                    border: '1px solid var(--ff-border)',
-                                    color: 'var(--ff-text-primary)',
-                                    fontSize: 14,
-                                    outline: 'none',
-                                    boxSizing: 'border-box',
-                                }}
-                            />
-                        </div>
-
-                        <div>
-                            <label style={{ display: 'block', fontSize: 12, color: 'var(--ff-text-muted)', marginBottom: 6 }}>
-                                Password
+                                New Password
                             </label>
                             <input
                                 type="password"
-                                autoComplete="current-password"
+                                autoFocus
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
                                 placeholder="••••••••"
@@ -133,32 +137,57 @@ export function Login() {
                             />
                         </div>
 
+                        <div>
+                            <label style={{ display: 'block', fontSize: 12, color: 'var(--ff-text-muted)', marginBottom: 6 }}>
+                                Confirm Password
+                            </label>
+                            <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={e => setConfirmPassword(e.target.value)}
+                                placeholder="••••••••"
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 14px',
+                                    borderRadius: 8,
+                                    background: 'var(--ff-navy)',
+                                    border: '1px solid var(--ff-border)',
+                                    color: 'var(--ff-text-primary)',
+                                    fontSize: 14,
+                                    outline: 'none',
+                                    boxSizing: 'border-box',
+                                }}
+                            />
+                        </div>
+
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || success}
                             style={{
                                 width: '100%',
                                 padding: '11px 0',
                                 borderRadius: 8,
-                                background: loading ? '#334155' : 'var(--ff-accent)',
+                                background: (loading || success) ? '#334155' : 'var(--ff-accent)',
                                 color: 'white',
                                 fontWeight: 600,
                                 fontSize: 15,
                                 border: 'none',
-                                cursor: loading ? 'not-allowed' : 'pointer',
+                                cursor: (loading || success) ? 'not-allowed' : 'pointer',
                                 marginTop: 4,
                                 transition: 'background 0.15s',
                             }}
                         >
-                            {loading ? 'Signing in…' : 'Sign In'}
+                            {loading ? 'Updating…' : 'Update Password'}
                         </button>
                     </form>
 
-                    <div style={{ marginTop: 24, textAlign: 'center' }}>
-                        <Link to="/forgot-password" style={{ color: 'var(--ff-text-muted)', fontSize: 14, textDecoration: 'none' }}>
-                            Forgot password?
-                        </Link>
-                    </div>
+                    {!success && (
+                        <div style={{ marginTop: 24, textAlign: 'center' }}>
+                            <Link to="/" style={{ color: 'var(--ff-text-muted)', fontSize: 14, textDecoration: 'none' }}>
+                                &larr; Back to login
+                            </Link>
+                        </div>
+                    )}
                 </div>
 
                 <p style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: 'var(--ff-text-muted)' }}>
