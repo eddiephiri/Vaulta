@@ -51,10 +51,10 @@ export default function App() {
     <BrowserRouter>
       <AuthEventHandler />
       <Routes>
+        <Route path="/reset-password" element={<ResetPassword />} />
         {!session ? (
           <>
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<Login />} />
           </>
         ) : (

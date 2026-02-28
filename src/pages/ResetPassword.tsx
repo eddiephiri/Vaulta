@@ -184,7 +184,7 @@ export function ResetPassword() {
                     {!success && (
                         <div style={{ marginTop: 24, textAlign: 'center' }}>
                             <Link to="/" style={{ color: 'var(--ff-text-muted)', fontSize: 14, textDecoration: 'none' }}>
-                                &larr; Back to login
+                                Cancel
                             </Link>
                         </div>
                     )}
