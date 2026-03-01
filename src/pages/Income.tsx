@@ -5,6 +5,9 @@ import { useIncome } from '../hooks/useIncome';
 import { useVehicles } from '../hooks/useVehicles';
 import { useDrivers } from '../hooks/useDrivers';
 import { AddIncomeModal } from '../components/AddIncomeModal';
+import { SearchInput } from '../components/SearchInput';
+import { Pagination } from '../components/Pagination';
+import { usePagination } from '../hooks/usePagination';
 import type { IncomeRecord } from '../types';
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -25,12 +28,21 @@ export function Income() {
     const { drivers } = useDrivers(true);  // active only
     const { records, loading, error, totalToday, totalThisWeek, totalThisMonth, refetch } =
         useIncome(vehicleFilter || undefined);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const filtered = records.filter(r => {
         if (sourceFilter && r.source !== sourceFilter) return false;
         if (monthFilter && !r.date.startsWith(monthFilter)) return false;
-        return true;
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return (
+            (r.reference && r.reference.toLowerCase().includes(q)) ||
+            (r.notes && r.notes.toLowerCase().includes(q)) ||
+            (r.vehicle?.plate && r.vehicle.plate.toLowerCase().includes(q))
+        );
     });
+
+    const { currentPage, totalPages, setCurrentPage, paginatedItems } = usePagination(filtered, 10);
 
     const fmt = (n: number) =>
         n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -99,9 +111,16 @@ export function Income() {
                         <option key={val} value={val}>{label}</option>
                     ))}
                 </select>
-                <input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
+                <input type="month" value={monthFilter} onChange={e => { setMonthFilter(e.target.value); setCurrentPage(1); }}
                     className="text-sm px-3 py-2 rounded-lg"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }} />
+                <div className="flex-1 min-w-[200px]">
+                    <SearchInput
+                        value={searchQuery}
+                        onChange={(val) => { setSearchQuery(val); setCurrentPage(1); }}
+                        placeholder="Search by reference, notes, or plate..."
+                    />
+                </div>
             </div>
 
             {loading ? (
@@ -118,7 +137,7 @@ export function Income() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {filtered.map(r => (
+                    {paginatedItems.map(r => (
                         <div key={r.id} className="flex items-center justify-between rounded-xl px-5 py-4"
                             style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
                             <div>
@@ -153,6 +172,14 @@ export function Income() {
                         </div>
                     ))}
                 </div>
+            )}
+
+            {!loading && filtered.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
             )}
 
             <AddIncomeModal

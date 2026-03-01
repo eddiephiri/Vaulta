@@ -4,6 +4,9 @@ import { PageHeader } from '../components/PageHeader';
 import { useLicensing } from '../hooks/useLicensing';
 import { useVehicles } from '../hooks/useVehicles';
 import { AddLicenseModal } from '../components/AddLicenseModal';
+import { SearchInput } from '../components/SearchInput';
+import { Pagination } from '../components/Pagination';
+import { usePagination } from '../hooks/usePagination';
 import type { LicenseRecord } from '../types';
 
 const LICENSE_TYPE_LABELS: Record<string, string> = {
@@ -23,6 +26,19 @@ export function Licensing() {
 
     const { vehicles } = useVehicles();
     const { records, loading, error, expiring, refetch } = useLicensing(vehicleFilter || undefined);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filtered = records.filter(r => {
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return (
+            (r.notes && r.notes.toLowerCase().includes(q)) ||
+            (r.vehicle?.plate && r.vehicle.plate.toLowerCase().includes(q)) ||
+            (r.license_type && r.license_type.toLowerCase().includes(q))
+        );
+    });
+
+    const { currentPage, totalPages, setCurrentPage, paginatedItems } = usePagination(filtered, 10);
 
     const countByType = (type: string) =>
         records.filter(r => r.license_type === type).length;
@@ -98,11 +114,11 @@ export function Licensing() {
             </div>
 
             {/* Filter */}
-            <div className="flex gap-3 mb-6 p-4 rounded-xl"
+            <div className="flex gap-3 mb-6 p-4 rounded-xl flex-wrap"
                 style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
                 <select
                     value={vehicleFilter}
-                    onChange={e => setVehicleFilter(e.target.value)}
+                    onChange={e => { setVehicleFilter(e.target.value); setCurrentPage(1); }}
                     className="text-sm px-3 py-2 rounded-lg"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                 >
@@ -111,13 +127,20 @@ export function Licensing() {
                         <option key={v.id} value={v.id}>{v.plate} — {v.make} {v.model}</option>
                     ))}
                 </select>
+                <div className="flex-1 min-w-[200px]">
+                    <SearchInput
+                        value={searchQuery}
+                        onChange={(val) => { setSearchQuery(val); setCurrentPage(1); }}
+                        placeholder="Search by type, notes, or vehicle plate..."
+                    />
+                </div>
             </div>
 
             {loading ? (
                 <div className="flex items-center justify-center h-36">
                     <p style={{ color: 'var(--ff-text-muted)' }}>Loading licenses…</p>
                 </div>
-            ) : records.length === 0 ? (
+            ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-36 rounded-xl"
                     style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
                     <p className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
@@ -126,7 +149,7 @@ export function Licensing() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {records.map(r => {
+                    {paginatedItems.map(r => {
                         const isExpired = r.expiry_date < today;
                         const isExpSoon = !isExpired && expiring.some(e => e.id === r.id);
                         const statusColor = isExpired ? '#ef4444' : isExpSoon ? '#f59e0b' : '#22c55e';
@@ -177,6 +200,14 @@ export function Licensing() {
                         );
                     })}
                 </div>
+            )}
+
+            {!loading && filtered.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
             )}
 
             <AddLicenseModal

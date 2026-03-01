@@ -4,6 +4,9 @@ import { PageHeader } from '../components/PageHeader';
 import { useTyreChanges } from '../hooks/useTyreChanges';
 import { useVehicles } from '../hooks/useVehicles';
 import { AddTyreModal } from '../components/AddTyreModal';
+import { SearchInput } from '../components/SearchInput';
+import { Pagination } from '../components/Pagination';
+import { usePagination } from '../hooks/usePagination';
 import type { TyreChange } from '../types';
 
 const POSITION_LABELS: Record<string, string> = {
@@ -22,10 +25,21 @@ export function TyreChanges() {
 
     const { vehicles } = useVehicles();
     const { records, loading, error, refetch } = useTyreChanges(vehicleFilter || undefined);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const filtered = positionFilter
-        ? records.filter(r => r.position === positionFilter)
-        : records;
+    const filtered = records.filter(r => {
+        if (positionFilter && r.position !== positionFilter) return false;
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return (
+            (r.brand && r.brand.toLowerCase().includes(q)) ||
+            (r.tyre_size && r.tyre_size.toLowerCase().includes(q)) ||
+            (r.notes && r.notes.toLowerCase().includes(q)) ||
+            (r.vehicle?.plate && r.vehicle.plate.toLowerCase().includes(q))
+        );
+    });
+
+    const { currentPage, totalPages, setCurrentPage, paginatedItems } = usePagination(filtered, 10);
 
     const fmt = (n: number) =>
         n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -63,7 +77,7 @@ export function TyreChanges() {
                 style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
                 <select
                     value={vehicleFilter}
-                    onChange={e => setVehicleFilter(e.target.value)}
+                    onChange={e => { setVehicleFilter(e.target.value); setCurrentPage(1); }}
                     className="text-sm px-3 py-2 rounded-lg"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                 >
@@ -74,7 +88,7 @@ export function TyreChanges() {
                 </select>
                 <select
                     value={positionFilter}
-                    onChange={e => setPositionFilter(e.target.value)}
+                    onChange={e => { setPositionFilter(e.target.value); setCurrentPage(1); }}
                     className="text-sm px-3 py-2 rounded-lg"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                 >
@@ -83,6 +97,13 @@ export function TyreChanges() {
                         <option key={val} value={val}>{label}</option>
                     ))}
                 </select>
+                <div className="flex-1 min-w-[200px]">
+                    <SearchInput
+                        value={searchQuery}
+                        onChange={(val) => { setSearchQuery(val); setCurrentPage(1); }}
+                        placeholder="Search by brand, size, notes, or plate..."
+                    />
+                </div>
             </div>
 
             {loading ? (
@@ -99,7 +120,7 @@ export function TyreChanges() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {filtered.map(r => (
+                    {paginatedItems.map(r => (
                         <div key={r.id} className="rounded-xl p-5"
                             style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
                             <div className="flex items-start justify-between">
@@ -147,6 +168,14 @@ export function TyreChanges() {
                         </div>
                     ))}
                 </div>
+            )}
+
+            {!loading && filtered.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
             )}
 
             <AddTyreModal

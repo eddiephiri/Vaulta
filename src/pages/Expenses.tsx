@@ -5,6 +5,9 @@ import { useExpenses } from '../hooks/useExpenses';
 import { useVehicles } from '../hooks/useVehicles';
 import { useDrivers } from '../hooks/useDrivers';
 import { AddExpenseModal } from '../components/AddExpenseModal';
+import { SearchInput } from '../components/SearchInput';
+import { Pagination } from '../components/Pagination';
+import { usePagination } from '../hooks/usePagination';
 import type { ExpenseRecord } from '../types';
 
 const EXPENSE_CATEGORIES = ['fuel', 'service', 'tyre', 'licensing', 'insurance', 'repairs', 'salary', 'wash', 'other'] as const;
@@ -28,12 +31,23 @@ export function Expenses() {
     const { drivers } = useDrivers(true);  // active only
     const { records, loading, error, totalToday, totalThisWeek, totalThisMonth, refetch } =
         useExpenses(vehicleFilter || undefined);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const filtered = records.filter(r => {
         if (categoryFilter && r.category !== categoryFilter) return false;
         if (monthFilter && !r.date.startsWith(monthFilter)) return false;
-        return true;
+        if (!searchQuery) return true;
+
+        const q = searchQuery.toLowerCase();
+        return (
+            (r.description && r.description.toLowerCase().includes(q)) ||
+            (r.category && r.category.toLowerCase().includes(q)) ||
+            (r.vehicle?.plate && r.vehicle.plate.toLowerCase().includes(q)) ||
+            (r.source_table && r.source_table.toLowerCase().includes(q))
+        );
     });
+
+    const { currentPage, totalPages, setCurrentPage, paginatedItems } = usePagination(filtered, 10);
 
     const fmt = (n: number) =>
         n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -125,7 +139,7 @@ export function Expenses() {
             {/* Filter bar */}
             <div className="flex flex-wrap gap-3 mb-6 p-4 rounded-xl"
                 style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
-                <select value={vehicleFilter} onChange={e => setVehicleFilter(e.target.value)}
+                <select value={vehicleFilter} onChange={e => { setVehicleFilter(e.target.value); setCurrentPage(1); }}
                     className="text-sm px-3 py-2 rounded-lg"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}>
                     <option value="">All Vehicles</option>
@@ -133,9 +147,16 @@ export function Expenses() {
                         <option key={v.id} value={v.id}>{v.plate} — {v.make} {v.model}</option>
                     ))}
                 </select>
-                <input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
+                <input type="month" value={monthFilter} onChange={e => { setMonthFilter(e.target.value); setCurrentPage(1); }}
                     className="text-sm px-3 py-2 rounded-lg"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }} />
+                <div className="flex-1 min-w-[200px]">
+                    <SearchInput
+                        value={searchQuery}
+                        onChange={(val) => { setSearchQuery(val); setCurrentPage(1); }}
+                        placeholder="Search by description, plate, source..."
+                    />
+                </div>
             </div>
 
             {loading ? (
@@ -152,7 +173,7 @@ export function Expenses() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {filtered.map(r => {
+                    {paginatedItems.map(r => {
                         const isAuto = !!r.source_table;
                         const color = CAT_COLORS[r.category] ?? '#94a3b8';
                         return (
@@ -202,6 +223,14 @@ export function Expenses() {
                         );
                     })}
                 </div>
+            )}
+
+            {!loading && filtered.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
             )}
 
             <AddExpenseModal

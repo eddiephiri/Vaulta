@@ -4,6 +4,9 @@ import { PageHeader } from '../components/PageHeader';
 import { useServiceHistory } from '../hooks/useServiceHistory';
 import { useVehicles } from '../hooks/useVehicles';
 import { AddServiceModal } from '../components/AddServiceModal';
+import { SearchInput } from '../components/SearchInput';
+import { Pagination } from '../components/Pagination';
+import { usePagination } from '../hooks/usePagination';
 import type { ServiceRecord } from '../types';
 
 export function ServiceHistory() {
@@ -11,13 +14,23 @@ export function ServiceHistory() {
     const [monthFilter, setMonthFilter] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState<ServiceRecord | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const { vehicles } = useVehicles();
     const { records, loading, error, refetch } = useServiceHistory(vehicleFilter || undefined);
 
-    const filtered = monthFilter
-        ? records.filter(r => r.date.startsWith(monthFilter))
-        : records;
+    const filtered = records.filter(r => {
+        if (monthFilter && !r.date.startsWith(monthFilter)) return false;
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return (
+            r.description.toLowerCase().includes(q) ||
+            (r.notes && r.notes.toLowerCase().includes(q)) ||
+            (r.service_provider && r.service_provider.toLowerCase().includes(q))
+        );
+    });
+
+    const { currentPage, totalPages, setCurrentPage, paginatedItems } = usePagination(filtered, 10);
 
     const fmt = (n: number) =>
         n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -67,10 +80,17 @@ export function ServiceHistory() {
                 <input
                     type="month"
                     value={monthFilter}
-                    onChange={e => setMonthFilter(e.target.value)}
+                    onChange={e => { setMonthFilter(e.target.value); setCurrentPage(1); }}
                     className="text-sm px-3 py-2 rounded-lg"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                 />
+                <div className="flex-1 min-w-[200px]">
+                    <SearchInput
+                        value={searchQuery}
+                        onChange={(val) => { setSearchQuery(val); setCurrentPage(1); }}
+                        placeholder="Search by description, notes, or provider..."
+                    />
+                </div>
             </div>
 
             {loading ? (
@@ -87,7 +107,7 @@ export function ServiceHistory() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {filtered.map(r => (
+                    {paginatedItems.map(r => (
                         <div key={r.id} className="rounded-xl p-5"
                             style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
                             <div className="flex items-start justify-between mb-2">
@@ -127,6 +147,14 @@ export function ServiceHistory() {
                         </div>
                     ))}
                 </div>
+            )}
+
+            {!loading && filtered.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
             )}
 
             <AddServiceModal
