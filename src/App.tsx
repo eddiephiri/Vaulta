@@ -30,7 +30,7 @@ function AuthEventHandler() {
 }
 
 export default function App() {
-  const { session, loading } = useAuth();
+  const { session, loading, authEvent } = useAuth();
 
   // While checking session, show a minimal loader so there's no flash
   if (loading) {
@@ -51,7 +51,9 @@ export default function App() {
     <BrowserRouter>
       <AuthEventHandler />
       <Routes>
-        <Route path="/reset-password" element={<ResetPassword />} />
+        {authEvent === 'PASSWORD_RECOVERY' && (
+          <Route path="/reset-password" element={<ResetPassword />} />
+        )}
         {!session ? (
           <>
             <Route path="/forgot-password" element={<ForgotPassword />} />

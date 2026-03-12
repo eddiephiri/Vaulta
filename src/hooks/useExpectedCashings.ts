@@ -40,7 +40,7 @@ export function useExpectedCashings(vehicleId?: string): UseExpectedCashingsRetu
 
     const today = new Date().toISOString().slice(0, 10);
     const overdue = cashings.filter(
-        c => c.status === 'pending' && c.expected_date <= today
+        c => c.status === 'pending' && c.expected_date <= today && !c.is_salary_week
     );
 
     return { cashings, overdue, loading, error, refetch: fetchCashings };

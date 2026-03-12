@@ -21,7 +21,7 @@ if (firebaseConfig.apiKey) {
         try {
             messaging = getMessaging(app);
         } catch (err) {
-            console.warn('FCM initialization failed:', err);
+            if (import.meta.env.DEV) console.warn('FCM initialization failed:', err);
         }
     }
 }
@@ -35,7 +35,7 @@ export async function requestFcmToken(): Promise<string | null> {
 
     const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY as string;
     if (!vapidKey) {
-        console.warn('VITE_FIREBASE_VAPID_KEY is not set. Push notifications disabled.');
+        if (import.meta.env.DEV) console.warn('VITE_FIREBASE_VAPID_KEY is not set. Push notifications disabled.');
         return null;
     }
 
@@ -46,7 +46,7 @@ export async function requestFcmToken(): Promise<string | null> {
         const token = await getToken(messaging, { vapidKey });
         return token;
     } catch (err) {
-        console.error('Failed to get FCM token:', err);
+        if (import.meta.env.DEV) console.error('Failed to get FCM token:', err);
         return null;
     }
 }

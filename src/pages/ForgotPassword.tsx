@@ -25,10 +25,12 @@ export function ForgotPassword() {
         setLoading(false);
 
         if (resetErr) {
-            setError(resetErr.message || 'Failed to send reset link.');
-        } else {
-            setSuccess(true);
+            // SECURITY: Always show success to prevent email enumeration.
+            // Log actual error only in development.
+            if (import.meta.env.DEV) console.error('Password reset error:', resetErr.message);
         }
+        // Always show success — even if email doesn't exist — to prevent enumeration
+        setSuccess(true);
     };
 
     return (

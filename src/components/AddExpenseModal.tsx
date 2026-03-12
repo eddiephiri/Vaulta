@@ -116,8 +116,9 @@ export function AddExpenseModal({ open, onClose, onSuccess, vehicles, drivers = 
             : form.description.trim();
 
         if (!form.vehicle_id) { setError('Please select a vehicle.'); return; }
-        if (!form.amount_zmw || isNaN(Number(form.amount_zmw)) || Number(form.amount_zmw) <= 0) {
-            setError('Please enter a valid amount.'); return;
+        const amount = Number(form.amount_zmw);
+        if (!form.amount_zmw || isNaN(amount) || amount <= 0 || amount > 999999.99 || !/^\d+(\.\d{1,2})?$/.test(form.amount_zmw)) {
+            setError('Enter a valid amount (0.01 – 999,999.99, max 2 decimal places).'); return;
         }
 
         setSubmitting(true);

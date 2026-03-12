@@ -24,7 +24,8 @@ export function Login() {
         setLoading(false);
 
         if (authErr) {
-            setError(authErr.message || 'Invalid email or password.');
+            // SECURITY: Always show a generic message to prevent username enumeration
+            setError('Invalid email or password.');
         }
         // On success, App.tsx will detect the new session and redirect automatically.
     };
