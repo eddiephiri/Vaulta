@@ -14,6 +14,7 @@ import {
     Zap,
     Users,
     CalendarClock,
+    Settings as SettingsIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
@@ -99,12 +100,30 @@ export function Layout() {
                     ))}
                 </nav>
 
-                {/* Collapse toggle + Sign out */}
-                <div className="border-t pb-3" style={{ borderColor: 'var(--ff-border)' }}>
+                {/* Profile actions + Sign out */}
+                <div className="border-t pt-3 pb-3" style={{ borderColor: 'var(--ff-border)' }}>
+                    <NavLink
+                        to="/settings"
+                        title={collapsed ? 'Settings' : undefined}
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 mx-2 mb-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive
+                                ? 'text-white'
+                                : 'text-slate-400 hover:text-white'
+                            }`
+                        }
+                        style={({ isActive }) =>
+                            isActive
+                                ? { background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)' }
+                                : { background: 'transparent' }
+                        }
+                    >
+                        <SettingsIcon size={18} className="flex-shrink-0" />
+                        {!collapsed && <span>Settings</span>}
+                    </NavLink>
                     <button
                         onClick={signOut}
                         title="Sign out"
-                        className="flex items-center gap-3 w-full mx-2 mt-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                        className="flex items-center gap-3 w-full mx-2 mt-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
                         style={{ color: 'var(--ff-text-muted)', width: 'calc(100% - 16px)' }}
                         onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
                         onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}

@@ -44,8 +44,9 @@ export function useAuth(): UseAuthReturn {
     };
 
     const resetPassword = async (email: string) => {
+        const baseUrl = import.meta.env.PROD ? 'https://myvaultr.com' : window.location.origin;
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`,
+            redirectTo: `${baseUrl}/reset-password`,
         });
         return { error: error as Error | null };
     };

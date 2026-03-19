@@ -14,6 +14,7 @@ import { CashingSchedules } from './pages/CashingSchedules';
 import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { Settings } from './pages/Settings';
 import { useAuth } from './hooks/useAuth';
 
 function AuthEventHandler() {
@@ -30,7 +31,7 @@ function AuthEventHandler() {
 }
 
 export default function App() {
-  const { session, loading, authEvent } = useAuth();
+  const { session, loading } = useAuth();
 
   // While checking session, show a minimal loader so there's no flash
   if (loading) {
@@ -51,28 +52,29 @@ export default function App() {
     <BrowserRouter>
       <AuthEventHandler />
       <Routes>
-        {authEvent === 'PASSWORD_RECOVERY' && (
-          <Route path="/reset-password" element={<ResetPassword />} />
-        )}
         {!session ? (
           <>
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="*" element={<Login />} />
           </>
         ) : (
-          <Route element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="vehicles" element={<Vehicles />} />
-            <Route path="service-history" element={<ServiceHistory />} />
-            <Route path="tyre-changes" element={<TyreChanges />} />
-            <Route path="licensing" element={<Licensing />} />
-            <Route path="income" element={<Income />} />
-            <Route path="expenses" element={<Expenses />} />
-            <Route path="drivers" element={<Drivers />} />
-            <Route path="cashing-schedules" element={<CashingSchedules />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
+          <>
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route element={<Layout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="vehicles" element={<Vehicles />} />
+              <Route path="service-history" element={<ServiceHistory />} />
+              <Route path="tyre-changes" element={<TyreChanges />} />
+              <Route path="licensing" element={<Licensing />} />
+              <Route path="income" element={<Income />} />
+              <Route path="expenses" element={<Expenses />} />
+              <Route path="drivers" element={<Drivers />} />
+              <Route path="cashing-schedules" element={<CashingSchedules />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </>
         )}
       </Routes>
     </BrowserRouter>

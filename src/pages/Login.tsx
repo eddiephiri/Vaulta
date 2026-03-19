@@ -53,13 +53,13 @@ export function Login() {
                         margin: '0 auto 16px',
                         fontSize: 28,
                     }}>
-                        🚛
+                        🔐
                     </div>
                     <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--ff-text-primary)', margin: 0 }}>
                         Vaulta
                     </h1>
                     <p style={{ fontSize: 14, color: 'var(--ff-text-muted)', marginTop: 6 }}>
-                        Sign in to manage your fleet
+                        Sign in to your workspace
                     </p>
                 </div>
 
