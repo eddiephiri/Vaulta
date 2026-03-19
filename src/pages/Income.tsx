@@ -51,6 +51,9 @@ export function Income() {
     const openEdit = (r: IncomeRecord) => { setEditing(r); setShowModal(true); };
     const handleClose = () => { setShowModal(false); setEditing(null); };
 
+    const isFiltered = Boolean(monthFilter || vehicleFilter || sourceFilter || searchQuery);
+    const filteredTotal = filtered.reduce((acc, r) => acc + Number(r.amount_zmw), 0);
+
     return (
         <div>
             <PageHeader
@@ -78,11 +81,11 @@ export function Income() {
             {/* Summary strip */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 {[
-                    { label: 'Today', value: loading ? '—' : `ZMW ${fmt(totalToday)}` },
-                    { label: 'This Week', value: loading ? '—' : `ZMW ${fmt(totalThisWeek)}` },
-                    { label: 'This Month', value: loading ? '—' : `ZMW ${fmt(totalThisMonth)}` },
+                    { id: 'today', label: 'Today', value: loading ? '—' : `ZMW ${fmt(totalToday)}` },
+                    { id: 'week', label: 'This Week', value: loading ? '—' : `ZMW ${fmt(totalThisWeek)}` },
+                    { id: 'filtered', label: isFiltered ? (monthFilter ? `Total (${monthFilter})` : 'Filtered Total') : 'This Month', value: loading ? '—' : `ZMW ${fmt(isFiltered ? filteredTotal : totalThisMonth)}` },
                 ].map(s => (
-                    <div key={s.label} className="rounded-xl p-4"
+                    <div key={s.id} className="rounded-xl p-4"
                         style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
                         <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--ff-text-muted)' }}>
                             {s.label}
