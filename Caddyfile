@@ -1,0 +1,3 @@
+myvaultr.com, www.myvaultr.com {
+    reverse_proxy fleetflow:80
+}
