@@ -131,26 +131,41 @@ export interface LicenseRecord {
     created_at: string;
 }
 
+// ─── Shared Ledger Transactions ────────────────────────────────────────────────
+
+export interface TransactionRecord {
+    id: string;
+    workspace_id: string;
+    app_id: string;
+    type: 'income' | 'expense' | 'transfer';
+    amount_zmw: number;
+    date: string;
+    description?: string;
+    linked_transaction_id?: string | null;
+    reference_entity_id?: string | null;
+    created_by?: string | null;
+    created_at: string;
+    metadata: Record<string, any>;
+    // Joined vehicle for convenience
+    vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model'>;
+    driver?: Pick<Driver, 'id' | 'name'>;
+}
+
 // ─── Income ──────────────────────────────────────────────────────────────────
 
-export interface IncomeRecord {
-    id: string;
-    vehicle_id: string;
-    vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model'>;
-    date: string;
-    amount_zmw: number;
+export interface IncomeMetadata {
     source: IncomeSource;
-    // Period the cashing covers (gross income approach)
     period_start?: string | null;
     period_end?: string | null;
-    // Optional driver who handed in the cashing
     driver_id?: string | null;
-    driver?: Pick<Driver, 'id' | 'name'>;
-    // Links back to the expected cashing row (if logged from a reminder)
     expected_cashing_id?: string | null;
     reference?: string;
     notes?: string;
-    created_at: string;
+}
+
+export interface IncomeRecord extends TransactionRecord {
+    type: 'income';
+    metadata: IncomeMetadata;
 }
 
 // ─── Expenses ────────────────────────────────────────────────────────────────
@@ -166,22 +181,17 @@ export type ExpenseCategory =
     | 'wash'
     | 'other';
 
-export interface ExpenseRecord {
-    id: string;
-    vehicle_id: string;
-    vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model'>;
-    date: string;
-    amount_zmw: number;
+export interface ExpenseMetadata {
     category: ExpenseCategory;
-    description?: string;
-    notes?: string;
-    // Set by database trigger — null means manually entered
     source_table?: 'service_history' | 'tyre_changes' | 'licensing' | null;
     source_id?: string | null;
-    // Driver being paid (salary entries only)
     driver_id?: string | null;
-    driver?: Pick<Driver, 'id' | 'name'>;
-    created_at: string;
+    notes?: string;
+}
+
+export interface ExpenseRecord extends TransactionRecord {
+    type: 'expense';
+    metadata: ExpenseMetadata;
 }
 
 // ─── Shared ───────────────────────────────────────────────────────────────────

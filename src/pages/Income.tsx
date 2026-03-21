@@ -31,13 +31,13 @@ export function Income() {
     const [searchQuery, setSearchQuery] = useState('');
 
     const filtered = records.filter(r => {
-        if (sourceFilter && r.source !== sourceFilter) return false;
+        if (sourceFilter && r.metadata?.source !== sourceFilter) return false;
         if (monthFilter && !r.date.startsWith(monthFilter)) return false;
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (
-            (r.reference && r.reference.toLowerCase().includes(q)) ||
-            (r.notes && r.notes.toLowerCase().includes(q)) ||
+            (r.metadata?.reference && r.metadata.reference.toLowerCase().includes(q)) ||
+            (r.description && r.description.toLowerCase().includes(q)) ||
             (r.vehicle?.plate && r.vehicle.plate.toLowerCase().includes(q))
         );
     });
@@ -147,16 +147,16 @@ export function Income() {
                                 <div className="flex items-center gap-2 mb-0.5">
                                     <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                                         style={{ background: '#22c55e20', color: '#22c55e' }}>
-                                        {SOURCE_LABELS[r.source] ?? r.source}
+                                        {r.metadata && r.metadata.source ? (SOURCE_LABELS[r.metadata.source] ?? r.metadata.source) : 'Unknown'}
                                     </span>
-                                    {r.reference && (
-                                        <span className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>#{r.reference}</span>
+                                    {r.metadata?.reference && (
+                                        <span className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>#{r.metadata.reference}</span>
                                     )}
                                 </div>
                                 <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>
                                     {r.vehicle?.plate} — {r.vehicle?.make} {r.vehicle?.model} · {r.date}
                                 </p>
-                                {r.notes && <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>{r.notes}</p>}
+                                {r.description && <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>{r.description}</p>}
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                                 <p className="font-bold text-base" style={{ color: '#22c55e' }}>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { Vehicle, IncomeSource, Driver, IncomeRecord } from '../types';
 
 interface AddIncomeModalProps {
@@ -49,6 +50,7 @@ const LABEL_STYLE = {
 } as const;
 
 export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [], prefill, initialData }: AddIncomeModalProps) {
+    const { activeWorkspaceId } = useWorkspace();
     const isEdit = !!initialData;
     const today = new Date().toISOString().slice(0, 10);
 
@@ -71,15 +73,15 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
         if (!open) return;
         if (initialData) {
             setForm({
-                vehicle_id: initialData.vehicle_id,
+                vehicle_id: initialData.reference_entity_id ?? '',
                 date: initialData.date,
                 amount_zmw: String(initialData.amount_zmw),
-                source: initialData.source,
-                period_start: initialData.period_start ?? '',
-                period_end: initialData.period_end ?? '',
-                driver_id: initialData.driver_id ?? '',
-                reference: initialData.reference ?? '',
-                notes: initialData.notes ?? '',
+                source: initialData.metadata?.source ?? 'yango',
+                period_start: initialData.metadata?.period_start ?? '',
+                period_end: initialData.metadata?.period_end ?? '',
+                driver_id: initialData.metadata?.driver_id ?? '',
+                reference: initialData.metadata?.reference ?? '',
+                notes: initialData.description ?? '',
             });
         } else {
             setForm({
@@ -124,19 +126,24 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
         setSubmitting(true);
 
         const payload = {
-            vehicle_id: form.vehicle_id,
+            workspace_id: activeWorkspaceId,
+            app_id: 'transport',
+            type: 'income',
+            reference_entity_id: form.vehicle_id,
             date: form.date,
             amount_zmw: Number(form.amount_zmw),
-            source: form.source,
-            period_start: form.period_start || null,
-            period_end: form.period_end || null,
-            driver_id: form.driver_id || null,
-            reference: form.reference.trim() || null,
-            notes: form.notes.trim() || null,
+            description: form.notes.trim() || null,
+            metadata: {
+                source: form.source,
+                period_start: form.period_start || null,
+                period_end: form.period_end || null,
+                driver_id: form.driver_id || null,
+                reference: form.reference.trim() || null,
+            }
         };
 
         if (isEdit) {
-            const { error: supaErr } = await supabase.from('income').update(payload).eq('id', initialData!.id);
+            const { error: supaErr } = await supabase.from('transactions').update(payload).eq('id', initialData!.id);
             setSubmitting(false);
             if (supaErr) { setError(supaErr.message); return; }
             onSuccess();
@@ -150,12 +157,17 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                 : lateReason === 'late_admin' ? 'late_admin'
                     : 'recorded';
 
-        const { data: incomeData, error: supaErr } = await supabase
-            .from('income')
-            .insert({
-                ...payload,
+        const insertPayload = {
+            ...payload,
+            metadata: {
+                ...payload.metadata,
                 expected_cashing_id: prefill?.expected_cashing_id ?? null,
-            })
+            }
+        };
+
+        const { data: incomeData, error: supaErr } = await supabase
+            .from('transactions')
+            .insert(insertPayload)
             .select('id')
             .single();
 
@@ -168,7 +180,7 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
         if (prefill?.expected_cashing_id && incomeData?.id) {
             await supabase
                 .from('expected_cashings')
-                .update({ status: cashingStatus, income_record_id: incomeData.id })
+                .update({ status: cashingStatus, transaction_id: incomeData.id })
                 .eq('id', prefill.expected_cashing_id);
         }
 

@@ -1,6 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Layout } from './components/Layout';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { AppLauncher } from './pages/AppLauncher';
 import { Dashboard } from './pages/Dashboard';
 import { Vehicles } from './pages/Vehicles';
 import { ServiceHistory } from './pages/ServiceHistory';
@@ -60,18 +62,29 @@ export default function App() {
         ) : (
           <>
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="vehicles" element={<Vehicles />} />
-              <Route path="service-history" element={<ServiceHistory />} />
-              <Route path="tyre-changes" element={<TyreChanges />} />
-              <Route path="licensing" element={<Licensing />} />
-              <Route path="income" element={<Income />} />
-              <Route path="expenses" element={<Expenses />} />
-              <Route path="drivers" element={<Drivers />} />
-              <Route path="cashing-schedules" element={<CashingSchedules />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="settings" element={<Settings />} />
+            <Route element={
+              <WorkspaceProvider>
+                <Outlet />
+              </WorkspaceProvider>
+            }>
+              <Route index element={<AppLauncher />} />
+              
+              <Route path="transport" element={<Layout />}>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="vehicles" element={<Vehicles />} />
+                <Route path="service-history" element={<ServiceHistory />} />
+                <Route path="tyre-changes" element={<TyreChanges />} />
+                <Route path="licensing" element={<Licensing />} />
+                <Route path="income" element={<Income />} />
+                <Route path="expenses" element={<Expenses />} />
+                <Route path="drivers" element={<Drivers />} />
+                <Route path="cashing-schedules" element={<CashingSchedules />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
+
+              {/* Catch-all for unknown routes inside the authenticated area */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </>

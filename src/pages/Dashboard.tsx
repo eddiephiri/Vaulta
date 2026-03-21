@@ -34,7 +34,7 @@ export function Dashboard() {
 
             {/* Overdue cashing reminder banner */}
             {overdue.length > 0 && (
-                <Link to="/cashing-schedules" style={{ textDecoration: 'none' }}>
+                <Link to="/transport/cashing-schedules" style={{ textDecoration: 'none' }}>
                     <div className="mb-6 p-4 rounded-xl flex items-start gap-3 cursor-pointer"
                         style={{ background: '#f59e0b15', border: '1px solid #f59e0b50' }}>
                         <CalendarClock size={18} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />

@@ -36,18 +36,30 @@ export function useExpenses(vehicleId?: string): UseExpensesReturn {
         setError(null);
 
         let query = supabase
-            .from('expenses')
-            .select('*, vehicle:vehicles(id, plate, make, model)')
+            .from('transactions')
+            .select('*')
+            .eq('type', 'expense')
+            .eq('app_id', 'transport')
             .order('date', { ascending: false });
 
-        if (vehicleId) query = query.eq('vehicle_id', vehicleId);
+        if (vehicleId) query = query.eq('reference_entity_id', vehicleId);
 
         const { data, error: supaErr } = await query;
 
         if (supaErr) {
             setError(supaErr.message);
+        } else if (data) {
+            const { data: vData } = await supabase.from('vehicles').select('id, plate, make, model');
+            const vMap = new Map(vData?.map(v => [v.id, v]) ?? []);
+            
+            const mapped = data.map(record => ({
+                ...record,
+                vehicle: vMap.get(record.reference_entity_id)
+            })) as unknown as ExpenseRecord[];
+            
+            setRecords(mapped);
         } else {
-            setRecords(data ?? []);
+            setRecords([]);
         }
         setLoading(false);
     }, [vehicleId]);

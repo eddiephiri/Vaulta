@@ -34,16 +34,16 @@ export function Expenses() {
     const [searchQuery, setSearchQuery] = useState('');
 
     const filtered = records.filter(r => {
-        if (categoryFilter && r.category !== categoryFilter) return false;
+        if (categoryFilter && r.metadata?.category !== categoryFilter) return false;
         if (monthFilter && !r.date.startsWith(monthFilter)) return false;
         if (!searchQuery) return true;
 
         const q = searchQuery.toLowerCase();
         return (
             (r.description && r.description.toLowerCase().includes(q)) ||
-            (r.category && r.category.toLowerCase().includes(q)) ||
+            (r.metadata?.category && r.metadata.category.toLowerCase().includes(q)) ||
             (r.vehicle?.plate && r.vehicle.plate.toLowerCase().includes(q)) ||
-            (r.source_table && r.source_table.toLowerCase().includes(q))
+            (r.metadata?.source_table && r.metadata.source_table.toLowerCase().includes(q))
         );
     });
 
@@ -54,7 +54,7 @@ export function Expenses() {
 
     const catTotals = EXPENSE_CATEGORIES.reduce<Record<string, number>>((acc, cat) => {
         acc[cat] = records
-            .filter(r => r.category === cat)
+            .filter(r => r.metadata?.category === cat)
             .reduce((s, r) => s + Number(r.amount_zmw), 0);
         return acc;
     }, {});
@@ -174,8 +174,9 @@ export function Expenses() {
             ) : (
                 <div className="space-y-3">
                     {paginatedItems.map(r => {
-                        const isAuto = !!r.source_table;
-                        const color = CAT_COLORS[r.category] ?? '#94a3b8';
+                        const isAuto = !!r.metadata?.source_table;
+                        const cat = r.metadata?.category ?? 'other';
+                        const color = CAT_COLORS[cat] ?? '#94a3b8';
                         return (
                             <div key={r.id} className="flex items-center justify-between rounded-xl px-5 py-4"
                                 style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
@@ -183,7 +184,7 @@ export function Expenses() {
                                     <div className="flex items-center gap-2 mb-0.5">
                                         <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                                             style={{ background: `${color}20`, color }}>
-                                            {CAT_LABELS[r.category] ?? r.category}
+                                            {CAT_LABELS[cat] ?? cat}
                                         </span>
                                         {isAuto && (
                                             <span className="text-xs px-2 py-0.5 rounded-full font-medium"

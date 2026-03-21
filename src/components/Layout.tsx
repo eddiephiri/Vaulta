@@ -1,44 +1,27 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-    LayoutDashboard,
-    Car,
-    Wrench,
-    CircleDot,
-    FileCheck2,
-    TrendingUp,
-    Receipt,
-    BarChart3,
     ChevronLeft,
     ChevronRight,
     LogOut,
     Zap,
-    Users,
-    CalendarClock,
     Settings as SettingsIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-
-const navItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/vehicles', icon: Car, label: 'Vehicles' },
-    { to: '/service-history', icon: Wrench, label: 'Service History' },
-    { to: '/tyre-changes', icon: CircleDot, label: 'Tyre Changes' },
-    { to: '/licensing', icon: FileCheck2, label: 'Licensing' },
-    { to: '/income', icon: TrendingUp, label: 'Income' },
-    { to: '/expenses', icon: Receipt, label: 'Expenses' },
-    { to: '/drivers', icon: Users, label: 'Drivers' },
-    { to: '/cashing-schedules', icon: CalendarClock, label: 'Cashing Schedules' },
-    { to: '/reports', icon: BarChart3, label: 'Reports' },
-];
+import { WorkspaceSwitcher } from './WorkspaceSwitcher';
+import { getAppByPath } from '../lib/apps';
 
 export function Layout() {
     const [collapsed, setCollapsed] = useState(false);
     const { signOut } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
+
+    const app = getAppByPath(location.pathname);
+    const navItems = app?.navItems || [];
 
     const currentPage = navItems.find(item =>
-        item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)
+        location.pathname === item.to || location.pathname.startsWith(item.to + '/')
     );
 
     return (
@@ -58,18 +41,20 @@ export function Layout() {
                     style={{ borderColor: 'var(--ff-border)' }}
                 >
                     <div
-                        className="flex items-center justify-center rounded-lg flex-shrink-0"
+                        className="flex items-center justify-center rounded-lg flex-shrink-0 cursor-pointer"
+                        onClick={() => navigate('/')}
+                        title="Back to Apps"
                         style={{
                             width: 36,
                             height: 36,
-                            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                            background: app ? `${app.color}20` : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                         }}
                     >
-                        <Zap size={18} color="white" />
+                        {app ? <app.icon size={18} color={app.color} /> : <Zap size={18} color="white" />}
                     </div>
                     {!collapsed && (
                         <span className="font-bold text-lg tracking-tight" style={{ color: 'var(--ff-text-primary)' }}>
-                            Vaulta
+                            {app?.name || 'Vaulta'}
                         </span>
                     )}
                 </div>
@@ -103,7 +88,7 @@ export function Layout() {
                 {/* Profile actions + Sign out */}
                 <div className="border-t pt-3 pb-3" style={{ borderColor: 'var(--ff-border)' }}>
                     <NavLink
-                        to="/settings"
+                        to={`/${app?.id || 'transport'}/settings`}
                         title={collapsed ? 'Settings' : undefined}
                         className={({ isActive }) =>
                             `flex items-center gap-3 mx-2 mb-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive
@@ -155,10 +140,13 @@ export function Layout() {
                     style={{ borderColor: 'var(--ff-border)', background: 'var(--ff-surface)' }}
                 >
                     <h1 className="text-lg font-semibold" style={{ color: 'var(--ff-text-primary)' }}>
-                        {currentPage?.label ?? 'Vaulta'}
+                        {currentPage?.label ?? app?.name ?? 'Vaulta'}
                     </h1>
-                    <div className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
-                        ZMW · Zambia
+                    <div className="flex items-center gap-6">
+                        <WorkspaceSwitcher />
+                        <div className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
+                            ZMW · Zambia
+                        </div>
                     </div>
                 </header>
 
