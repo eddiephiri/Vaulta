@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import { APPS } from '../lib/apps';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 
@@ -8,8 +9,9 @@ export function AppLauncher() {
 
     if (!activeWorkspaceId) {
         return (
-            <div className="flex h-screen items-center justify-center p-6" style={{ background: 'var(--ff-navy)' }}>
-                <p style={{ color: 'var(--ff-text-muted)' }}>Loading Workspace...</p>
+            <div className="flex flex-col h-screen items-center justify-center p-6" style={{ background: 'var(--ff-navy)' }}>
+                <Loader2 className="animate-spin mb-4" size={32} style={{ color: 'var(--ff-accent)' }} />
+                <p style={{ color: 'var(--ff-text-muted)', fontSize: 14 }}>Loading Workspace...</p>
             </div>
         );
     }

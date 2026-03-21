@@ -7,7 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 interface WorkspaceContextType {
     activeWorkspaceId: string | null;
     isSwitching: boolean;
-    switchWorkspace: (workspaceId: string) => Promise<void>;
+    switchWorkspace: (workspaceId: string, shouldNavigate?: boolean) => Promise<void>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -24,18 +24,47 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(initialWorkspaceId);
     const [isSwitching, setIsSwitching] = useState(false);
 
-    // Keep it in sync if session updates externally
+    // Keep it in sync if session updates externally, or fallback to DB if JWT lacks it
     useEffect(() => {
-        const currentSessionId = (session?.user?.app_metadata?.workspace_id as string) || 
-                                 (session?.user?.user_metadata?.workspace_id as string) || 
-                                 null;
-        
-        if (currentSessionId && currentSessionId !== activeWorkspaceId) {
-            setActiveWorkspaceId(currentSessionId);
-        }
-    }, [session, activeWorkspaceId]);
+        let isMounted = true;
 
-    const switchWorkspace = async (workspaceId: string) => {
+        const ensureWorkspace = async () => {
+            const currentSessionId = (session?.user?.app_metadata?.workspace_id as string) || 
+                                     (session?.user?.user_metadata?.workspace_id as string) || 
+                                     null;
+            
+            if (currentSessionId) {
+                if (currentSessionId !== activeWorkspaceId && isMounted) {
+                    setActiveWorkspaceId(currentSessionId);
+                }
+                return;
+            }
+
+            // Fallback: the token doesn't have it, let's query the DB.
+            if (!user || activeWorkspaceId) return;
+
+            try {
+                const { data } = await supabase
+                    .from('workspace_users')
+                    .select('workspace_id')
+                    .eq('user_id', user.id)
+                    .order('last_active_workspace', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (data?.workspace_id && isMounted) {
+                    await switchWorkspace(data.workspace_id, false);
+                }
+            } catch (err) {
+                console.error("Failed to fallback fetch workspace:", err);
+            }
+        };
+
+        ensureWorkspace();
+        return () => { isMounted = false; };
+    }, [session, activeWorkspaceId, user]);
+
+    const switchWorkspace = async (workspaceId: string, shouldNavigate = true) => {
         if (!user) return;
         setIsSwitching(true);
 
@@ -63,8 +92,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             setActiveWorkspaceId(workspaceId);
 
             // 4. Redirect to the App Launcher or the newly selected dashboard
-            // Assuming "/" is the App Launcher or primary redirect route for a workspace
-            navigate('/');
+            if (shouldNavigate) {
+                navigate('/');
+            }
             
         } catch (error) {
             console.error("Failed to switch workspace:", error);
