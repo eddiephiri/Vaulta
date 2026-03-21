@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -50,7 +51,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             if (updateError) throw updateError;
 
             // 2. Force Supabase to issue a new JWT containing the updated workspace_id claim
-            const { data, error: refreshError } = await supabase.auth.refreshSession();
+            const { error: refreshError } = await supabase.auth.refreshSession();
 
             if (refreshError) {
                 // Notifying user of security context failure

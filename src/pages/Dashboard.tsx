@@ -175,7 +175,7 @@ export function Dashboard() {
                             {expenseRecords.slice(0, 5).map(r => (
                                 <li key={r.id} className="flex items-center justify-between">
                                     <span className="text-sm capitalize" style={{ color: 'var(--ff-text-muted)' }}>
-                                        {r.vehicle?.plate} · {r.category}
+                                        {r.vehicle?.plate} · {r.metadata?.category}
                                     </span>
                                     <span className="text-sm font-semibold" style={{ color: '#ef4444' }}>
                                         ZMW {fmt(Number(r.amount_zmw))}
