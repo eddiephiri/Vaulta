@@ -39,7 +39,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const isGuest = userRole === 'guest';
 
     const refreshWorkspaces = useCallback(async () => {
-        if (!user) return;
+        if (!user) {
+            console.log("refreshWorkspaces: No user found in Auth context.");
+            return;
+        }
+        console.log("refreshWorkspaces: Fetching for User ID:", user.id);
         setLoading(true);
 
         const { data, error } = await supabase
