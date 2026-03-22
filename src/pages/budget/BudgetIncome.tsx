@@ -11,7 +11,7 @@ import { Pagination } from '../../components/Pagination';
 import { SearchInput } from '../../components/SearchInput';
 
 export function BudgetIncome() {
-    const { activeWorkspaceId } = useWorkspace();
+    const { activeWorkspaceId, isGuest } = useWorkspace();
     const [showModal, setShowModal] = useState(false);
     const [monthFilter, setMonthFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
@@ -91,7 +91,7 @@ export function BudgetIncome() {
             <PageHeader
                 title="Income & Funding"
                 subtitle="Track all money coming into your household"
-                action={
+                action={!isGuest && (
                     <button
                         onClick={() => setShowModal(true)}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
@@ -99,7 +99,7 @@ export function BudgetIncome() {
                     >
                         <Plus size={16} /> Add Income
                     </button>
-                }
+                )}
             />
 
             {error && (

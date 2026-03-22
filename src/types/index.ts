@@ -11,10 +11,23 @@ export interface WorkspaceUser {
     id: string;
     workspace_id: string;
     user_id: string;
-    role: 'owner' | 'admin' | 'member';
+    role: 'owner' | 'admin' | 'member' | 'guest';
     last_active_workspace: boolean;
+    expires_at?: string | null;
+    authorized_apps?: string[] | null;
     created_at: string;
     workspace?: Workspace;
+}
+
+export interface WorkspaceAccessCode {
+    id: string;
+    code: string;
+    workspace_id: string;
+    role: 'member' | 'guest';
+    authorized_apps?: string[] | null;
+    expires_at?: string | null;
+    created_by?: string;
+    created_at: string;
 }
 
 // ─── Vehicle ────────────────────────────────────────────────────────────────

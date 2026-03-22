@@ -8,6 +8,9 @@ import type { Workspace } from '../types';
 interface WorkspaceContextType {
     activeWorkspaceId: string | null;
     workspaces: Workspace[];
+    userRole: 'owner' | 'admin' | 'member' | 'guest' | null;
+    isGuest: boolean;
+    authorizedApps: string[] | null;
     loading: boolean;
     isSwitching: boolean;
     switchWorkspace: (workspaceId: string, shouldNavigate?: boolean) => Promise<void>;
@@ -28,8 +31,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
     const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(initialWorkspaceId);
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+    const [userRole, setUserRole] = useState<'owner' | 'admin' | 'member' | 'guest' | null>(null);
+    const [authorizedApps, setAuthorizedApps] = useState<string[] | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSwitching, setIsSwitching] = useState(false);
+
+    const isGuest = userRole === 'guest';
 
     const refreshWorkspaces = useCallback(async () => {
         if (!user) return;
@@ -37,15 +44,40 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
         const { data, error } = await supabase
             .from('workspace_users')
-            .select('workspace:workspaces(*)')
+            .select(`
+                role, 
+                expires_at, 
+                authorized_apps, 
+                workspace:workspaces(*)
+            `)
             .eq('user_id', user.id);
 
         if (!error && data) {
-            const list = data.map((item: any) => item.workspace as Workspace).filter(Boolean);
+            const list = data
+                .filter((item: any) => !item.expires_at || new Date(item.expires_at) > new Date())
+                .map((item: any) => item.workspace as Workspace)
+                .filter(Boolean);
+            
             setWorkspaces(list);
+
+            // Update current workspace role/apps if it's in the list
+            if (activeWorkspaceId) {
+                const membership = data.find((m: any) => m.workspace?.id === activeWorkspaceId);
+                if (membership) {
+                    // Check if expired
+                    if (membership.expires_at && new Date(membership.expires_at) <= new Date()) {
+                        setActiveWorkspaceId(null);
+                        setUserRole(null);
+                        setAuthorizedApps(null);
+                    } else {
+                        setUserRole(membership.role);
+                        setAuthorizedApps(membership.authorized_apps);
+                    }
+                }
+            }
         }
         setLoading(false);
-    }, [user]);
+    }, [user, activeWorkspaceId]);
 
     // Keep it in sync if session updates externally, or fallback to DB if JWT lacks it
     useEffect(() => {
@@ -175,6 +207,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         <WorkspaceContext.Provider value={{ 
             activeWorkspaceId, 
             workspaces, 
+            userRole,
+            isGuest,
+            authorizedApps,
             loading, 
             isSwitching, 
             switchWorkspace, 

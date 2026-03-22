@@ -22,6 +22,7 @@ import { BudgetDashboard } from './pages/budget/BudgetDashboard';
 import { BudgetIncome } from './pages/budget/BudgetIncome';
 import { BudgetExpenses } from './pages/budget/BudgetExpenses';
 import { BudgetReports } from './pages/budget/BudgetReports';
+import { JoinWorkspace } from './pages/JoinWorkspace';
 
 function AuthEventHandler() {
   const { authEvent } = useAuth();
@@ -72,6 +73,7 @@ export default function App() {
               </WorkspaceProvider>
             }>
               <Route index element={<AppLauncher />} />
+              <Route path="join" element={<JoinWorkspace />} />
               
               <Route path="transport" element={<Layout />}>
                 <Route index element={<Navigate to="dashboard" replace />} />

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Plus, Layout, ArrowRight, Settings as SettingsIcon } from 'lucide-react';
+import { Loader2, Plus, Layout, ArrowRight, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 import { APPS } from '../lib/apps';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { CreateWorkspaceModal } from '../components/CreateWorkspaceModal';
 
 export function AppLauncher() {
     const navigate = useNavigate();
-    const { activeWorkspaceId, workspaces, loading, switchWorkspace } = useWorkspace();
+    const { activeWorkspaceId, workspaces, isGuest, authorizedApps, loading, switchWorkspace } = useWorkspace();
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(activeWorkspaceId);
 
@@ -69,6 +69,17 @@ export function AppLauncher() {
                             </div>
                             <span className="font-semibold" style={{ color: 'var(--ff-text-primary)' }}>Create New Workspace</span>
                         </button>
+
+                        <button
+                            onClick={() => navigate('/join')}
+                            className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed transition-all duration-200 hover:border-blue-500/50 hover:bg-blue-500/5 group"
+                            style={{ borderColor: 'var(--ff-border)', minHeight: 180 }}
+                        >
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3 bg-white/5 text-slate-400 group-hover:text-blue-500 group-hover:bg-blue-500/10 transition-colors">
+                                <ShieldCheck size={24} />
+                            </div>
+                            <span className="font-semibold" style={{ color: 'var(--ff-text-primary)' }}>Redeem Access Code</span>
+                        </button>
                     </div>
                 </main>
 
@@ -94,36 +105,42 @@ export function AppLauncher() {
                         className="text-xs font-bold uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1.5"
                         style={{ color: 'var(--ff-text-muted)' }}
                     >
-                        <Layout size={14} /> Switch Workspace
+                        <Layout size={14} /> {isGuest ? 'Workspaces' : 'Switch Workspace'}
                     </button>
-                    <div className="w-px h-3 bg-slate-700 self-center" />
-                    <button 
-                        onClick={() => navigate('/transport/settings')}
-                        className="text-xs font-bold uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1.5"
-                        style={{ color: 'var(--ff-text-muted)' }}
-                    >
-                        <SettingsIcon size={14} /> Settings
-                    </button>
+                    {!isGuest && (
+                        <>
+                            <div className="w-px h-3 bg-slate-700 self-center" />
+                            <button 
+                                onClick={() => navigate('/transport/settings')}
+                                className="text-xs font-bold uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1.5"
+                                style={{ color: 'var(--ff-text-muted)' }}
+                            >
+                                <SettingsIcon size={14} /> Settings
+                            </button>
+                        </>
+                    )}
                 </div>
             </header>
 
             <main className="flex-1 overflow-y-auto p-8 flex justify-center items-start">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl w-full">
-                    {Object.values(APPS).map((app) => (
-                        <button
-                            key={app.id}
-                            onClick={() => navigate(`/${app.id}/dashboard`)}
-                            className="flex flex-col items-start p-6 rounded-xl border transition-all duration-200 text-left hover:-translate-y-1 hover:shadow-lg group"
-                            style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}
-                        >
-                            <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-transform duration-200 group-hover:scale-110"
-                                style={{ backgroundColor: `${app.color}20`, color: app.color }}>
-                                <app.icon size={24} />
-                            </div>
-                            <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--ff-text-primary)' }}>{app.name}</h2>
-                            <p className="text-sm line-clamp-2" style={{ color: 'var(--ff-text-muted)' }}>{app.description}</p>
-                        </button>
-                    ))}
+                    {Object.values(APPS)
+                        .filter(app => !isGuest || authorizedApps?.includes(app.id))
+                        .map((app) => (
+                            <button
+                                key={app.id}
+                                onClick={() => navigate(`/${app.id}/dashboard`)}
+                                className="flex flex-col items-start p-6 rounded-xl border transition-all duration-200 text-left hover:-translate-y-1 hover:shadow-lg group"
+                                style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}
+                            >
+                                <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-transform duration-200 group-hover:scale-110"
+                                    style={{ backgroundColor: `${app.color}20`, color: app.color }}>
+                                    <app.icon size={24} />
+                                </div>
+                                <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--ff-text-primary)' }}>{app.name}</h2>
+                                <p className="text-sm line-clamp-2" style={{ color: 'var(--ff-text-muted)' }}>{app.description}</p>
+                            </button>
+                        ))}
                 </div>
             </main>
         </div>
