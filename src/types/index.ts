@@ -208,3 +208,52 @@ export interface PaginatedResponse<T> {
     pageSize: number;
 }
 
+// ─── Budget Accounts ─────────────────────────────────────────────────────────
+
+export type BudgetAccountType = 'bank' | 'mobile_money' | 'cash' | 'savings';
+
+export interface BudgetAccount {
+    id: string;
+    workspace_id: string;
+    name: string;
+    type: BudgetAccountType;
+    currency: string;
+    color: string;
+    notes?: string;
+    created_at: string;
+}
+
+// ─── Budget Categories ───────────────────────────────────────────────────────
+
+export type BudgetCategoryType = 'income' | 'expense';
+
+export interface BudgetCategory {
+    id: string;
+    workspace_id: string;
+    name: string;
+    type: BudgetCategoryType;
+    color: string;
+    icon?: string;
+    created_at: string;
+}
+
+// ─── Budget Transactions ─────────────────────────────────────────────────────
+
+export interface BudgetTransactionMetadata {
+    category_id?: string | null;
+    account_id?: string | null;
+    notes?: string;
+    // Denormalised for display (avoids extra joins)
+    category_name?: string;
+    account_name?: string;
+}
+
+export interface BudgetIncomeRecord extends TransactionRecord {
+    type: 'income';
+    metadata: BudgetTransactionMetadata;
+}
+
+export interface BudgetExpenseRecord extends TransactionRecord {
+    type: 'expense';
+    metadata: BudgetTransactionMetadata;
+}

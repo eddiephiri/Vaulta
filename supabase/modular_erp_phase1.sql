@@ -35,12 +35,13 @@ CREATE TABLE IF NOT EXISTS public.workspace_apps (
 
 -- Workspace Users / RBAC: Maps auth.users to workspaces with roles
 CREATE TABLE IF NOT EXISTS public.workspace_users (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id    UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
-    user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    role            TEXT NOT NULL CHECK (role IN ('owner', 'admin', 'member', 'guest')),
-    access_duration TEXT, -- Expected timeframe at invitation, e.g., '1 Day', '1 Week', 'Permanent'
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id           UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    user_id                UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    role                   TEXT NOT NULL CHECK (role IN ('owner', 'admin', 'member', 'guest')),
+    access_duration        TEXT, -- Expected timeframe at invitation, e.g., '1 Day', '1 Week', 'Permanent'
+    last_active_workspace  BOOLEAN NOT NULL DEFAULT false, -- Tracks which workspace was most recently active for this user
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (workspace_id, user_id)
 );
 
@@ -135,3 +136,16 @@ USING (
     WHERE user_id = auth.uid()
   )
 );
+
+-- RLS Policies: workspace_users (users must be able to read and update their own memberships)
+-- Without these, the fallback workspace lookup in WorkspaceContext returns empty → infinite loading screen.
+CREATE POLICY "Users can view own workspace memberships"
+  ON public.workspace_users
+  FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Users can update own workspace membership"
+  ON public.workspace_users
+  FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());

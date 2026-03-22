@@ -18,6 +18,10 @@ import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { Settings } from './pages/Settings';
 import { useAuth } from './hooks/useAuth';
+import { BudgetDashboard } from './pages/budget/BudgetDashboard';
+import { BudgetIncome } from './pages/budget/BudgetIncome';
+import { BudgetExpenses } from './pages/budget/BudgetExpenses';
+import { BudgetReports } from './pages/budget/BudgetReports';
 
 function AuthEventHandler() {
   const { authEvent } = useAuth();
@@ -82,6 +86,14 @@ export default function App() {
                 <Route path="cashing-schedules" element={<CashingSchedules />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="settings" element={<Settings />} />
+              </Route>
+
+              <Route path="budget" element={<Layout />}>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<BudgetDashboard />} />
+                <Route path="income" element={<BudgetIncome />} />
+                <Route path="expenses" element={<BudgetExpenses />} />
+                <Route path="reports" element={<BudgetReports />} />
               </Route>
 
               {/* Catch-all for unknown routes inside the authenticated area */}
