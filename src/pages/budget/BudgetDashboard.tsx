@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { TrendingUp, ShoppingCart, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
 import { useBudgetIncome } from '../../hooks/budget/useBudgetIncome';
@@ -21,7 +20,6 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
 };
 
 export function BudgetDashboard() {
-    const navigate = useNavigate();
     const { records: incomeRecords, totalThisMonth: incomeMonth, loading: incomeLoading } = useBudgetIncome();
     const { records: expenseRecords, totalThisMonth: expenseMonth, loading: expenseLoading } = useBudgetExpenses();
     const { accounts, loading: accountsLoading } = useBudgetAccounts();
