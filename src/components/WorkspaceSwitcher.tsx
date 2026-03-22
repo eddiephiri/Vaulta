@@ -1,79 +1,71 @@
-import React, { useEffect, useState } from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
-import { supabase } from '../lib/supabase';
-
-interface Workspace {
-    id: string;
-    name: string;
-}
+import { Loader2, Layout, ChevronDown } from 'lucide-react';
 
 export function WorkspaceSwitcher() {
-    const { activeWorkspaceId, switchWorkspace, isSwitching } = useWorkspace();
-    const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { activeWorkspaceId, workspaces, loading, switchWorkspace, isSwitching } = useWorkspace();
 
-    useEffect(() => {
-        // Fetch workspaces the current user belongs to
-        async function fetchWorkspaces() {
-            const { data, error } = await supabase
-                .from('workspaces')
-                .select('id, name');
-            
-            if (!error && data) {
-                setWorkspaces(data);
-                
-                // If there's no active workspace yet (e.g., first login), auto-select the first one
-                if (!activeWorkspaceId && data.length > 0) {
-                    switchWorkspace(data[0].id);
-                }
-            }
-            setLoading(false);
-        }
-
-        fetchWorkspaces();
-    }, [activeWorkspaceId]);
-
-    const handleSwitch = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newWorkspaceId = e.target.value;
-        if (newWorkspaceId && newWorkspaceId !== activeWorkspaceId) {
-             switchWorkspace(newWorkspaceId);
-        }
-    };
-
-    if (loading) return <span style={{ color: 'var(--ff-text-muted)', fontSize: '14px' }}>Loading Hubs...</span>;
-
-    if (workspaces.length === 0) {
-        return <span style={{ color: 'var(--ff-text-muted)', fontSize: '14px' }}>No Hubs Found</span>;
+    if (loading && workspaces.length === 0) {
+        return (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border" style={{ borderColor: 'var(--ff-border)', background: 'var(--ff-surface)' }}>
+                <Loader2 size={14} className="animate-spin" style={{ color: 'var(--ff-text-muted)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--ff-text-muted)' }}>Hubs...</span>
+            </div>
+        );
     }
 
+    const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
+
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label htmlFor="workspace-select" style={{ fontSize: '14px', color: 'var(--ff-text)' }}>
-                Active Hub:
-            </label>
-            <select 
-                id="workspace-select"
-                value={activeWorkspaceId || ''} 
-                onChange={handleSwitch}
-                disabled={isSwitching}
-                style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--ff-border)',
-                    backgroundColor: 'var(--ff-surface)',
-                    color: 'var(--ff-text)',
-                    fontSize: '14px',
-                    cursor: isSwitching ? 'not-allowed' : 'pointer',
-                    opacity: isSwitching ? 0.7 : 1
+        <div className="relative group">
+            <div 
+                className="flex items-center gap-3 px-4 py-2 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md"
+                style={{ 
+                    borderColor: 'var(--ff-border)', 
+                    background: 'var(--ff-surface)',
+                    minWidth: '160px'
                 }}
             >
-                {workspaces.map((ws) => (
-                    <option key={ws.id} value={ws.id}>
-                        {ws.name}
-                    </option>
-                ))}
-            </select>
-            {isSwitching && <span style={{ fontSize: '12px', color: 'var(--ff-primary)' }}>Switching...</span>}
+                <div className="p-1.5 rounded-lg" style={{ background: 'var(--ff-accent)15' }}>
+                    <Layout size={14} style={{ color: 'var(--ff-accent)' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider font-bold opacity-50 mb-0.5" style={{ color: 'var(--ff-text-muted)' }}>Active Hub</p>
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--ff-text-primary)' }}>
+                        {activeWorkspace?.name || 'Select Hub'}
+                    </p>
+                </div>
+                <ChevronDown size={14} style={{ color: 'var(--ff-text-muted)' }} className="group-hover:translate-y-0.5 transition-transform" />
+            </div>
+
+            {/* Dropdown Menu */}
+            <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl shadow-2xl invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 p-2 overflow-hidden"
+                style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                <div className="px-3 py-2 mb-1 border-b" style={{ borderColor: 'var(--ff-border)' }}>
+                    <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--ff-text-muted)' }}>Switch Workspace</p>
+                </div>
+                <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                    {workspaces.map((ws) => (
+                        <button
+                            key={ws.id}
+                            disabled={isSwitching || ws.id === activeWorkspaceId}
+                            onClick={() => switchWorkspace(ws.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 mb-1 last:mb-0 ${
+                                ws.id === activeWorkspaceId 
+                                ? 'bg-blue-500/10 text-blue-500 cursor-default font-bold' 
+                                : 'hover:bg-white/5 text-slate-400 hover:text-white'
+                            }`}
+                        >
+                            <div className={`p-1.5 rounded-lg ${ws.id === activeWorkspaceId ? 'bg-blue-500/20' : 'bg-white/5'}`}>
+                                <Layout size={14} />
+                            </div>
+                            <span className="flex-1 text-left truncate">{ws.name}</span>
+                            {ws.id === activeWorkspaceId && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }

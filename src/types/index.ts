@@ -1,3 +1,22 @@
+// ─── Workspace ──────────────────────────────────────────────────────────────
+
+export interface Workspace {
+    id: string;
+    name: string;
+    description?: string;
+    created_at: string;
+}
+
+export interface WorkspaceUser {
+    id: string;
+    workspace_id: string;
+    user_id: string;
+    role: 'owner' | 'admin' | 'member';
+    last_active_workspace: boolean;
+    created_at: string;
+    workspace?: Workspace;
+}
+
 // ─── Vehicle ────────────────────────────────────────────────────────────────
 
 export type VehicleStatus = 'active' | 'inactive' | 'maintenance';

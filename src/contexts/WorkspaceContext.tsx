@@ -1,13 +1,18 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import type { Workspace } from '../types';
 
 interface WorkspaceContextType {
     activeWorkspaceId: string | null;
+    workspaces: Workspace[];
+    loading: boolean;
     isSwitching: boolean;
     switchWorkspace: (workspaceId: string, shouldNavigate?: boolean) => Promise<void>;
+    createWorkspace: (name: string, description?: string) => Promise<string | null>;
+    refreshWorkspaces: () => Promise<void>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -22,13 +27,35 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                                null;
 
     const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(initialWorkspaceId);
+    const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isSwitching, setIsSwitching] = useState(false);
+
+    const refreshWorkspaces = useCallback(async () => {
+        if (!user) return;
+        setLoading(true);
+
+        const { data, error } = await supabase
+            .from('workspace_users')
+            .select('workspace:workspaces(*)')
+            .eq('user_id', user.id);
+
+        if (!error && data) {
+            const list = data.map((item: any) => item.workspace as Workspace).filter(Boolean);
+            setWorkspaces(list);
+        }
+        setLoading(false);
+    }, [user]);
 
     // Keep it in sync if session updates externally, or fallback to DB if JWT lacks it
     useEffect(() => {
         let isMounted = true;
 
         const ensureWorkspace = async () => {
+            if (user) {
+                await refreshWorkspaces();
+            }
+
             const currentSessionId = (session?.user?.app_metadata?.workspace_id as string) || 
                                      (session?.user?.user_metadata?.workspace_id as string) || 
                                      null;
@@ -62,7 +89,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
         ensureWorkspace();
         return () => { isMounted = false; };
-    }, [session, activeWorkspaceId, user]);
+    }, [session, user, refreshWorkspaces]);
 
     const switchWorkspace = async (workspaceId: string, shouldNavigate = true) => {
         if (!user) return;
@@ -104,8 +131,56 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const createWorkspace = async (name: string, description?: string) => {
+        if (!user) return null;
+        setIsSwitching(true);
+
+        try {
+            // 1. Create the workspace record
+            const { data: wsData, error: wsError } = await supabase
+                .from('workspaces')
+                .insert({ name, description })
+                .select()
+                .single();
+
+            if (wsError) throw wsError;
+
+            // 2. Link user as owner
+            const { error: linkError } = await supabase
+                .from('workspace_users')
+                .insert({
+                    workspace_id: wsData.id,
+                    user_id: user.id,
+                    role: 'owner',
+                    last_active_workspace: true
+                });
+
+            if (linkError) throw linkError;
+
+            // 3. Update JWT and local state
+            await supabase.auth.refreshSession();
+            await refreshWorkspaces();
+            setActiveWorkspaceId(wsData.id);
+            
+            return wsData.id as string;
+        } catch (error) {
+            console.error("Failed to create workspace:", error);
+            return null;
+        } finally {
+            setIsSwitching(false);
+        }
+    };
+
     return (
-        <WorkspaceContext.Provider value={{ activeWorkspaceId, isSwitching, switchWorkspace }}>
+        <WorkspaceContext.Provider value={{ 
+            activeWorkspaceId, 
+            workspaces, 
+            loading, 
+            isSwitching, 
+            switchWorkspace, 
+            createWorkspace,
+            refreshWorkspaces
+        }}>
             {children}
         </WorkspaceContext.Provider>
     );

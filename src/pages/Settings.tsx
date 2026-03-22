@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { supabase } from '../lib/supabase';
 import { InviteMemberModal } from '../components/InviteMemberModal';
-import { UserPlus, Users } from 'lucide-react';
+import { UserPlus, Users, Save, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export function Settings() {
     const { updatePassword } = useAuth();
@@ -72,52 +72,32 @@ export function Settings() {
     };
 
     return (
-        <div className="max-w-2xl mx-auto">
-            <h2 className="text-xl font-semibold mb-6" style={{ color: 'var(--ff-text-primary)' }}>
-                Account Settings
+        <div className="max-w-3xl mx-auto pb-12">
+            <h2 className="text-2xl font-bold mb-8" style={{ color: 'var(--ff-text-primary)' }}>
+                Settings
             </h2>
 
-            <div style={{
-                background: 'var(--ff-surface)',
-                border: '1px solid var(--ff-border)',
-                borderRadius: 12,
-                padding: 24,
-            }}>
-                <h3 className="text-lg font-medium mb-4" style={{ color: 'var(--ff-text-primary)' }}>
-                    Change Password
+            {/* Account Settings */}
+            <div className="mb-8 p-6 rounded-2xl border" style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}>
+                <h3 className="text-lg font-semibold mb-6 flex items-center gap-2" style={{ color: 'var(--ff-text-primary)' }}>
+                    Account Security
                 </h3>
 
                 {error && (
-                    <div style={{
-                        marginBottom: 18,
-                        padding: '10px 14px',
-                        borderRadius: 8,
-                        background: '#ef444420',
-                        color: '#ef4444',
-                        border: '1px solid #ef444440',
-                        fontSize: 13,
-                    }}>
-                        {error}
+                    <div className="flex items-center gap-3 p-4 mb-6 rounded-xl text-sm" style={{ background: '#ef444415', color: '#ef4444', border: '1px solid #ef444430' }}>
+                        <AlertCircle size={18} /> {error}
                     </div>
                 )}
 
                 {success && (
-                    <div style={{
-                        marginBottom: 18,
-                        padding: '10px 14px',
-                        borderRadius: 8,
-                        background: '#22c55e20',
-                        color: '#22c55e',
-                        border: '1px solid #22c55e40',
-                        fontSize: 13,
-                    }}>
-                        Password updated successfully.
+                    <div className="flex items-center gap-3 p-4 mb-6 rounded-xl text-sm" style={{ background: '#10b98115', color: '#10b981', border: '1px solid #10b98130' }}>
+                        <CheckCircle2 size={18} /> Password updated successfully.
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label style={{ display: 'block', fontSize: 13, color: 'var(--ff-text-muted)', marginBottom: 6 }}>
+                        <label className="block text-xs font-bold uppercase tracking-wider mb-2 opacity-50" style={{ color: 'var(--ff-text-muted)' }}>
                             New Password
                         </label>
                         <input
@@ -125,22 +105,13 @@ export function Settings() {
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             placeholder="••••••••"
-                            style={{
-                                width: '100%',
-                                padding: '10px 14px',
-                                borderRadius: 8,
-                                background: 'var(--ff-navy)',
-                                border: '1px solid var(--ff-border)',
-                                color: 'var(--ff-text-primary)',
-                                fontSize: 14,
-                                outline: 'none',
-                                boxSizing: 'border-box',
-                            }}
+                            className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:ring-2 focus:ring-blue-500/50 outline-none"
+                            style={{ background: 'var(--ff-navy)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
                         />
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: 13, color: 'var(--ff-text-muted)', marginBottom: 6 }}>
+                        <label className="block text-xs font-bold uppercase tracking-wider mb-2 opacity-50" style={{ color: 'var(--ff-text-muted)' }}>
                             Confirm Password
                         </label>
                         <input
@@ -148,114 +119,101 @@ export function Settings() {
                             value={confirmPassword}
                             onChange={e => setConfirmPassword(e.target.value)}
                             placeholder="••••••••"
-                            style={{
-                                width: '100%',
-                                padding: '10px 14px',
-                                borderRadius: 8,
-                                background: 'var(--ff-navy)',
-                                border: '1px solid var(--ff-border)',
-                                color: 'var(--ff-text-primary)',
-                                fontSize: 14,
-                                outline: 'none',
-                                boxSizing: 'border-box',
-                            }}
+                            className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:ring-2 focus:ring-blue-500/50 outline-none"
+                            style={{ background: 'var(--ff-navy)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                            width: 'fit-content',
-                            padding: '10px 24px',
-                            borderRadius: 8,
-                            background: loading ? '#334155' : 'var(--ff-accent)',
-                            color: 'white',
-                            fontWeight: 600,
-                            fontSize: 14,
-                            border: 'none',
-                            cursor: loading ? 'not-allowed' : 'pointer',
-                            marginTop: 8,
-                            transition: 'background 0.15s',
-                        }}
-                    >
-                        {loading ? 'Updating…' : 'Update Password'}
-                    </button>
+                    <div className="md:col-span-2">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                            style={{ background: 'var(--ff-accent)' }}
+                        >
+                            {loading ? 'Updating…' : <><Save size={18} /> Update Password</>}
+                        </button>
+                    </div>
                 </form>
             </div>
 
-            <div style={{
-                background: 'var(--ff-surface)',
-                border: '1px solid var(--ff-border)',
-                borderRadius: 12,
-                padding: 24,
-                marginTop: 24,
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <h3 className="text-lg font-medium" style={{ color: 'var(--ff-text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Users size={20} />
-                        Workspace Members
-                    </h3>
-                    <button
-                        onClick={() => setShowInviteModal(true)}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: 6,
-                            padding: '8px 16px', borderRadius: 8,
-                            background: 'var(--ff-accent)', color: 'white',
-                            fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer'
-                        }}
-                    >
-                        <UserPlus size={16} />
-                        Invite Guest
-                    </button>
-                </div>
+            {/* Workspace Settings */}
+            <div className="p-6 rounded-2xl border" style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}>
+                <h3 className="text-lg font-semibold mb-6" style={{ color: 'var(--ff-text-primary)' }}>
+                    Workspace Settings
+                </h3>
 
-                {membersError && (
-                    <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: '#ef444420', color: '#ef4444', fontSize: 13 }}>
-                        {membersError}
+                <WorkspaceRenameForm />
+
+                <div className="mt-10 pt-8 border-t" style={{ borderColor: 'var(--ff-border)' }}>
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg" style={{ background: 'var(--ff-accent)15' }}>
+                                <Users size={18} style={{ color: 'var(--ff-accent)' }} />
+                            </div>
+                            <h4 className="font-semibold" style={{ color: 'var(--ff-text-primary)' }}>Team Members</h4>
+                        </div>
+                        <button
+                            onClick={() => setShowInviteModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all active:scale-95"
+                            style={{ background: 'var(--ff-accent)' }}
+                        >
+                            <UserPlus size={16} /> Invite Member
+                        </button>
                     </div>
-                )}
 
-                {loadingMembers ? (
-                    <p style={{ color: 'var(--ff-text-muted)', fontSize: 13, padding: '12px 0' }}>Loading members...</p>
-                ) : (
-                    <div style={{ border: '1px solid var(--ff-border)', borderRadius: 8, overflow: 'hidden' }}>
-                        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead>
-                                <tr style={{ background: 'var(--ff-navy)', borderBottom: '1px solid var(--ff-border)' }}>
-                                    <th style={{ padding: '10px 14px', color: 'var(--ff-text-muted)', fontWeight: 500 }}>Email Address</th>
-                                    <th style={{ padding: '10px 14px', color: 'var(--ff-text-muted)', fontWeight: 500 }}>Role</th>
-                                    <th style={{ padding: '10px 14px', color: 'var(--ff-text-muted)', fontWeight: 500 }}>Access Duration</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {members.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={3} style={{ padding: '16px 14px', color: 'var(--ff-text-muted)', textAlign: 'center' }}>
-                                            No members found.
-                                        </td>
+                    {membersError && (
+                        <div className="p-4 mb-6 rounded-xl text-sm" style={{ background: '#ef444415', color: '#ef4444', border: '1px solid #ef444430' }}>
+                            {membersError}
+                        </div>
+                    )}
+
+                    {loadingMembers ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="w-8 h-8 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                        </div>
+                    ) : (
+                        <div className="overflow-hidden border rounded-xl" style={{ borderColor: 'var(--ff-border)' }}>
+                            <table className="w-full text-left text-sm">
+                                <thead>
+                                    <tr style={{ background: 'var(--ff-navy)', borderBottom: '1px solid var(--ff-border)' }}>
+                                        <th className="px-5 py-3 font-semibold opacity-50" style={{ color: 'var(--ff-text-muted)' }}>Email</th>
+                                        <th className="px-5 py-3 font-semibold opacity-50" style={{ color: 'var(--ff-text-muted)' }}>Role</th>
+                                        <th className="px-5 py-3 font-semibold opacity-50" style={{ color: 'var(--ff-text-muted)' }}>Status</th>
                                     </tr>
-                                ) : (
-                                    members.map((m, i) => (
-                                        <tr key={i} style={{ borderBottom: i === members.length - 1 ? 'none' : '1px solid var(--ff-border)' }}>
-                                            <td style={{ padding: '12px 14px', color: 'var(--ff-text-primary)' }}>{m.email}</td>
-                                            <td style={{ padding: '12px 14px' }}>
-                                                <span style={{ 
-                                                    padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 500,
-                                                    background: m.role === 'owner' ? '#ef444420' : m.role === 'admin' ? '#f59e0b20' : '#3b82f620',
-                                                    color: m.role === 'owner' ? '#ef4444' : m.role === 'admin' ? '#f59e0b' : '#3b82f6'
-                                                }}>
-                                                    {m.role?.toUpperCase()}
-                                                </span>
+                                </thead>
+                                <tbody>
+                                    {members.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={3} className="px-5 py-8 text-center opacity-50" style={{ color: 'var(--ff-text-muted)' }}>
+                                                No members invited yet.
                                             </td>
-                                            <td style={{ padding: '12px 14px', color: 'var(--ff-text-muted)' }}>{m.access_duration ?? 'Permanent'}</td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                    ) : (
+                                        members.map((m, i) => (
+                                            <tr key={i} style={{ borderBottom: i === members.length - 1 ? 'none' : '1px solid var(--ff-border)' }}>
+                                                <td className="px-5 py-4 font-medium" style={{ color: 'var(--ff-text-primary)' }}>{m.email}</td>
+                                                <td className="px-5 py-4">
+                                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                                                        style={{ 
+                                                            background: m.role === 'owner' ? '#ef444415' : m.role === 'admin' ? '#f59e0b15' : '#3b82f615',
+                                                            color: m.role === 'owner' ? '#ef4444' : m.role === 'admin' ? '#f59e0b' : '#3b82f6',
+                                                            border: '1px solid currentColor', borderOpacity: 0.2
+                                                        }}>
+                                                        {m.role}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-4 text-xs opacity-50" style={{ color: 'var(--ff-text-muted)' }}>
+                                                    {m.access_duration ?? 'Permanent'}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <InviteMemberModal 
@@ -264,5 +222,102 @@ export function Settings() {
                 onSuccess={() => { fetchMembers(); }}
             />
         </div>
+    );
+}
+
+function WorkspaceRenameForm() {
+    const { activeWorkspaceId, workspaces, refreshWorkspaces } = useWorkspace();
+    const workspace = workspaces.find(w => w.id === activeWorkspaceId);
+    const [name, setName] = useState(workspace?.name || '');
+    const [description, setDescription] = useState(workspace?.description || '');
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (workspace) {
+            setName(workspace.name);
+            setDescription(workspace.description || '');
+        }
+    }, [workspace]);
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!activeWorkspaceId || !name.trim()) return;
+        
+        setLoading(true);
+        setError(null);
+        setSuccess(false);
+
+        const { error: err } = await supabase
+            .from('workspaces')
+            .update({ name: name.trim(), description: description.trim() })
+            .eq('id', activeWorkspaceId);
+
+        if (err) {
+            setError(err.message);
+        } else {
+            await refreshWorkspaces();
+            setSuccess(true);
+            setTimeout(() => setSuccess(false), 3000);
+        }
+        setLoading(false);
+    };
+
+    if (!workspace) return null;
+
+    return (
+        <form onSubmit={handleSave} className="space-y-6">
+            {error && (
+                <div className="flex items-center gap-3 p-4 rounded-xl text-sm" style={{ background: '#ef444415', color: '#ef4444', border: '1px solid #ef444430' }}>
+                    <AlertCircle size={18} /> {error}
+                </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 opacity-50" style={{ color: 'var(--ff-text-muted)' }}>
+                        Workspace Name
+                    </label>
+                    <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/50 transition-all outline-none"
+                        style={{ background: 'var(--ff-navy)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
+                    />
+                </div>
+                <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 opacity-50" style={{ color: 'var(--ff-text-muted)' }}>
+                        Description
+                    </label>
+                    <input
+                        type="text"
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        placeholder="Project or company name..."
+                        className="w-full px-4 py-2.5 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/50 transition-all outline-none"
+                        style={{ background: 'var(--ff-navy)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
+                    />
+                </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+                <button
+                    type="submit"
+                    disabled={loading || (name === workspace.name && description === (workspace.description || ''))}
+                    className="px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                    style={{ background: 'var(--ff-accent)' }}
+                >
+                    {loading ? 'Saving…' : <><Save size={18} /> Save Workspace Changes</>}
+                </button>
+                {success && (
+                    <div className="flex items-center gap-2 text-xs font-medium" style={{ color: '#10b981' }}>
+                        <CheckCircle2 size={16} /> Saved!
+                    </div>
+                )}
+            </div>
+        </form>
     );
 }
