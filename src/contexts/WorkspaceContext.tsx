@@ -52,12 +52,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             `)
             .eq('user_id', user.id);
 
-        if (!error && data) {
+        if (error) {
+            console.error("Error fetching workspaces:", error);
+        } else if (data) {
+            console.log("Workspaces fetch data:", data);
             const list = data
                 .filter((item: any) => !item.expires_at || new Date(item.expires_at) > new Date())
                 .map((item: any) => item.workspace as Workspace)
                 .filter(Boolean);
             
+            console.log("Filtered workspaces list:", list);
             setWorkspaces(list);
 
             // Update current workspace role/apps if it's in the list
