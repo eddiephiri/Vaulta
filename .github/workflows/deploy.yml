@@ -16,5 +16,17 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
-              cd ~/fleetflow
+              # Try to find the fleetflow directory if ~/fleetflow doesn't exist
+              if [ ! -d "~/fleetflow" ]; then
+                echo "Directory ~/fleetflow not found. Checking current directory..."
+                if [ -f "deploy.sh" ]; then
+                  echo "Found deploy.sh in $(pwd). Continuing..."
+                else
+                   echo "Error: deploy.sh not found in ~/fleetflow or current directory."
+                   ls -la
+                   exit 1
+                fi
+              else
+                cd ~/fleetflow
+              fi
               bash deploy.sh
