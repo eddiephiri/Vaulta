@@ -178,7 +178,7 @@ export function CashingSchedules() {
                                             <RefreshCw size={14} style={{ color: 'var(--ff-text-muted)' }} />
                                         </div>
 
-                                        <div className="grid grid-cols-4 gap-3 mt-3">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
                                             <div className="text-center rounded-lg p-2"
                                                 style={{ background: 'var(--ff-navy)' }}>
                                                 <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>Anchor</p>

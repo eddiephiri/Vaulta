@@ -126,7 +126,7 @@ export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles, dr
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.6)' }}>
-            <div className="w-full max-w-md rounded-2xl p-6 relative overflow-y-auto max-h-[90vh]"
+            <div className="w-full max-w-[min(448px,95vw)] rounded-2xl p-6 relative overflow-y-auto max-h-[90vh]"
                 style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
 
                 <button onClick={onClose} className="absolute top-4 right-4"

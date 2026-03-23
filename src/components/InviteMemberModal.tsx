@@ -108,8 +108,9 @@ export function InviteMemberModal({ open, onClose, onSuccess }: InviteMemberModa
         }}>
             <div onClick={e => e.stopPropagation()} style={{
                 background: 'var(--ff-surface)', border: '1px solid var(--ff-border)',
-                borderRadius: 16, width: '100%', maxWidth: 440, padding: 28,
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                borderRadius: 16, width: '100%', maxWidth: 'min(440px, 95vw)', padding: '24px 20px',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                maxHeight: '90vh', overflowY: 'auto'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
                     <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ff-text-primary)' }}>

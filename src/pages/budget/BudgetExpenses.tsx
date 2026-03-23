@@ -9,6 +9,7 @@ import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { usePagination } from '../../hooks/usePagination';
 import { Pagination } from '../../components/Pagination';
 import { SearchInput } from '../../components/SearchInput';
+import { MobileFilterSheet } from '../../components/MobileFilterSheet';
 
 export function BudgetExpenses() {
     const { activeWorkspaceId, canEditApp } = useWorkspace();
@@ -18,6 +19,7 @@ export function BudgetExpenses() {
     const [accountFilter, setAccountFilter] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [saving, setSaving] = useState(false);
+    const [filtersOpen, setFiltersOpen] = useState(false);
 
     const [form, setForm] = useState({
         amount_zmw: '',
@@ -49,6 +51,7 @@ export function BudgetExpenses() {
     const { currentPage, totalPages, setCurrentPage, paginatedItems } = usePagination(filtered, 15);
     const isFiltered = Boolean(monthFilter || categoryFilter || accountFilter || searchQuery);
     const filteredTotal = filtered.reduce((acc, r) => acc + Number(r.amount_zmw), 0);
+    const activeFilterCount = [categoryFilter, accountFilter, monthFilter, searchQuery].filter(Boolean).length;
     const fmt = (n: number) => n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const handleSave = async (e: React.FormEvent) => {
@@ -121,20 +124,20 @@ export function BudgetExpenses() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-3 mb-6 p-4 rounded-xl" style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
-                <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ ...inputStyle, width: 'auto' }}>
+            <MobileFilterSheet open={filtersOpen} onToggle={() => setFiltersOpen(f => !f)} filterCount={activeFilterCount}>
+                <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ ...inputStyle, width: 'auto' }} className="w-full md:w-auto">
                     <option value="">All Categories</option>
                     {expenseCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
-                <select value={accountFilter} onChange={e => setAccountFilter(e.target.value)} style={{ ...inputStyle, width: 'auto' }}>
+                <select value={accountFilter} onChange={e => setAccountFilter(e.target.value)} style={{ ...inputStyle, width: 'auto' }} className="w-full md:w-auto">
                     <option value="">All Accounts</option>
                     {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
-                <input type="month" value={monthFilter} onChange={e => { setMonthFilter(e.target.value); setCurrentPage(1); }} style={{ ...inputStyle, width: 'auto' }} />
+                <input type="month" value={monthFilter} onChange={e => { setMonthFilter(e.target.value); setCurrentPage(1); }} style={{ ...inputStyle, width: 'auto' }} className="w-full md:w-auto" />
                 <div className="flex-1 min-w-[200px]">
                     <SearchInput value={searchQuery} onChange={v => { setSearchQuery(v); setCurrentPage(1); }} placeholder="Search description or category…" />
                 </div>
-            </div>
+            </MobileFilterSheet>
 
             {/* Records list */}
             {loading ? (

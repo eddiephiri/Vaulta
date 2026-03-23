@@ -207,9 +207,14 @@ export function Settings() {
                         <div className="flex items-center justify-center py-8">
                             <div className="w-6 h-6 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
                         </div>
+                    ) : members.length === 0 ? (
+                        <div className="p-8 text-center border rounded-xl opacity-50" style={{ borderColor: 'var(--ff-border)', color: 'var(--ff-text-muted)' }}>
+                            No members yet.
+                        </div>
                     ) : (
-                        <div className="overflow-hidden border rounded-xl" style={{ borderColor: 'var(--ff-border)' }}>
-                            <div className="overflow-x-auto">
+                        <div>
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-hidden border rounded-xl" style={{ borderColor: 'var(--ff-border)' }}>
                                 <table className="w-full text-left text-sm whitespace-nowrap">
                                     <thead>
                                         <tr style={{ background: 'var(--ff-navy)', borderBottom: '1px solid var(--ff-border)' }}>
@@ -220,50 +225,77 @@ export function Settings() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y" style={{ borderColor: 'var(--ff-border)' }}>
-                                        {members.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={4} className="px-5 py-8 text-center opacity-50" style={{ color: 'var(--ff-text-muted)' }}>
-                                                    No members yet.
+                                        {members.map((m) => (
+                                            <tr key={m.user_id}>
+                                                <td className="px-5 py-4 font-medium" style={{ color: 'var(--ff-text-primary)' }}>{m.email}</td>
+                                                <td className="px-5 py-4">
+                                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border"
+                                                        style={{ 
+                                                            background: m.role === 'owner' ? '#ef444415' : m.role === 'admin' ? '#f59e0b15' : m.role === 'guest' ? '#8b5cf615' : '#3b82f615',
+                                                            color: m.role === 'owner' ? '#ef4444' : m.role === 'admin' ? '#f59e0b' : m.role === 'guest' ? '#8b5cf6' : '#3b82f6',
+                                                            borderColor: 'currentColor'
+                                                        }}>
+                                                        {m.role}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-4 text-xs" style={{ color: 'var(--ff-text-primary)' }}>
+                                                    {m.role === 'guest' ? (
+                                                        <div className="flex gap-1">
+                                                            {(m.authorized_apps || []).map((app: string) => (
+                                                                <span key={app} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 uppercase font-mono text-[9px]">
+                                                                    {app}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="opacity-50 text-xs">Full Access</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <span className="text-xs font-semibold" 
+                                                        style={{ color: getTimeRemaining(m.expires_at) === 'Expired' ? '#ef4444' : 'var(--ff-text-muted)' }}>
+                                                        {getTimeRemaining(m.expires_at)}
+                                                    </span>
                                                 </td>
                                             </tr>
-                                        ) : (
-                                            members.map((m) => (
-                                                <tr key={m.user_id}>
-                                                    <td className="px-5 py-4 font-medium" style={{ color: 'var(--ff-text-primary)' }}>{m.email}</td>
-                                                    <td className="px-5 py-4">
-                                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border"
-                                                            style={{ 
-                                                                background: m.role === 'owner' ? '#ef444415' : m.role === 'admin' ? '#f59e0b15' : m.role === 'guest' ? '#8b5cf615' : '#3b82f615',
-                                                                color: m.role === 'owner' ? '#ef4444' : m.role === 'admin' ? '#f59e0b' : m.role === 'guest' ? '#8b5cf6' : '#3b82f6',
-                                                                borderColor: 'currentColor'
-                                                            }}>
-                                                            {m.role}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-5 py-4 text-xs" style={{ color: 'var(--ff-text-primary)' }}>
-                                                        {m.role === 'guest' ? (
-                                                            <div className="flex gap-1">
-                                                                {(m.authorized_apps || []).map((app: string) => (
-                                                                    <span key={app} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 uppercase font-mono text-[9px]">
-                                                                        {app}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        ) : (
-                                                            <span className="opacity-50 text-xs">Full Access</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-5 py-4">
-                                                        <span className="text-xs font-semibold" 
-                                                            style={{ color: getTimeRemaining(m.expires_at) === 'Expired' ? '#ef4444' : 'var(--ff-text-muted)' }}>
-                                                            {getTimeRemaining(m.expires_at)}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
+                                        ))}
                                     </tbody>
                                 </table>
+                            </div>
+
+                            {/* Mobile Card View */}
+                            <div className="md:hidden space-y-3">
+                                {members.map((m) => (
+                                    <div key={m.user_id} className="p-4 rounded-xl border flex flex-col gap-3" 
+                                        style={{ background: 'var(--ff-navy)', borderColor: 'var(--ff-border)' }}>
+                                        <div className="flex items-center justify-between">
+                                            <p className="font-medium text-sm truncate" style={{ color: 'var(--ff-text-primary)' }}>{m.email}</p>
+                                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border"
+                                                style={{ 
+                                                    background: m.role === 'owner' ? '#ef444415' : m.role === 'admin' ? '#f59e0b15' : m.role === 'guest' ? '#8b5cf615' : '#3b82f615',
+                                                    color: m.role === 'owner' ? '#ef4444' : m.role === 'admin' ? '#f59e0b' : m.role === 'guest' ? '#8b5cf6' : '#3b82f6',
+                                                    borderColor: 'currentColor'
+                                                }}>
+                                                {m.role}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs" style={{ color: 'var(--ff-text-muted)' }}>
+                                            <span>{m.role === 'guest' ? 'Limited Apps' : 'Full Access'}</span>
+                                            <span style={{ color: getTimeRemaining(m.expires_at) === 'Expired' ? '#ef4444' : 'inherit' }}>
+                                                {getTimeRemaining(m.expires_at)}
+                                            </span>
+                                        </div>
+                                        {m.role === 'guest' && m.authorized_apps?.length > 0 && (
+                                            <div className="flex flex-wrap gap-1">
+                                                {m.authorized_apps.map((app: string) => (
+                                                    <span key={app} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 uppercase font-mono text-[9px]">
+                                                        {app}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

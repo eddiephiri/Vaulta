@@ -202,7 +202,7 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
             <div onClick={e => e.stopPropagation()} style={{
                 background: 'var(--ff-surface)',
                 border: '1px solid var(--ff-border)',
-                borderRadius: 16, width: '100%', maxWidth: 480, padding: 28,
+                borderRadius: 16, width: '100%', maxWidth: 'min(480px, 95vw)', padding: '24px 20px',
                 boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
                 maxHeight: '90vh', overflowY: 'auto',
             }}>

@@ -1,5 +1,7 @@
 import { BarChart3, Download } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
+import { MobileFilterSheet } from '../components/MobileFilterSheet';
+import { useState } from 'react';
 
 const REPORT_TYPES = [
     { id: 'profit_loss', label: 'Profit & Loss', desc: 'Income vs Expenses summary by period' },
@@ -9,6 +11,12 @@ const REPORT_TYPES = [
 ];
 
 export function Reports() {
+    const [filtersOpen, setFiltersOpen] = useState(false);
+    const [vehicleFilter, setVehicleFilter] = useState('');
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
+    
+    const activeFilterCount = [vehicleFilter, fromDate, toDate].filter(Boolean).length;
     return (
         <div>
             <PageHeader
@@ -26,33 +34,36 @@ export function Reports() {
             />
 
             {/* Date range picker */}
-            <div
-                className="flex flex-wrap gap-3 mb-6 p-4 rounded-xl"
-                style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}
-            >
-                <div className="flex items-center gap-2">
-                    <label className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>From</label>
+            <MobileFilterSheet open={filtersOpen} onToggle={() => setFiltersOpen(f => !f)} filterCount={activeFilterCount}>
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <label className="text-xs shrink-0" style={{ color: 'var(--ff-text-muted)' }}>From</label>
                     <input
                         type="date"
-                        className="text-sm px-3 py-2 rounded-lg"
+                        value={fromDate}
+                        onChange={e => setFromDate(e.target.value)}
+                        className="text-sm px-3 py-2 rounded-lg w-full"
                         style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                     />
                 </div>
-                <div className="flex items-center gap-2">
-                    <label className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>To</label>
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <label className="text-xs shrink-0" style={{ color: 'var(--ff-text-muted)' }}>To</label>
                     <input
                         type="date"
-                        className="text-sm px-3 py-2 rounded-lg"
+                        value={toDate}
+                        onChange={e => setToDate(e.target.value)}
+                        className="text-sm px-3 py-2 rounded-lg w-full"
                         style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                     />
                 </div>
                 <select
-                    className="text-sm px-3 py-2 rounded-lg"
+                    value={vehicleFilter}
+                    onChange={e => setVehicleFilter(e.target.value)}
+                    className="text-sm px-3 py-2 rounded-lg w-full md:w-auto"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                 >
                     <option value="">All Vehicles</option>
                 </select>
-            </div>
+            </MobileFilterSheet>
 
             {/* Report type cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

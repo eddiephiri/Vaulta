@@ -32,7 +32,7 @@ export function CreateWorkspaceModal({ open, onClose }: CreateWorkspaceModalProp
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in duration-200" 
+            <div className="w-full max-w-[min(448px,95vw)] rounded-2xl p-6 shadow-2xl animate-in zoom-in duration-200 max-h-[90vh] overflow-y-auto" 
                 style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
