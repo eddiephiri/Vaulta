@@ -9,7 +9,49 @@ ADD COLUMN IF NOT EXISTS editable_apps TEXT[] DEFAULT '{}';
 ALTER TABLE public.workspace_access_codes 
 ADD COLUMN IF NOT EXISTS editable_apps TEXT[] DEFAULT '{}';
 
--- 2. Update Helper Functions
+-- 2. Helper Functions
+
+-- Random code generator (RE-DEFINED for robustness)
+CREATE OR REPLACE FUNCTION public.generate_access_code()
+RETURNS TEXT AS $$
+DECLARE
+  chars TEXT := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; -- No I, O, 0, 1 for clarity
+  result TEXT := 'VLT-';
+  i INTEGER;
+BEGIN
+  FOR i IN 1..4 LOOP
+    result := result || substr(chars, floor(random() * length(chars) + 1)::integer, 1);
+  END LOOP;
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Check if user has specific app access (RE-DEFINED for robustness)
+CREATE OR REPLACE FUNCTION public.has_app_access(_workspace_id UUID, _app_id TEXT)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_role TEXT;
+  v_apps TEXT[];
+BEGIN
+  SELECT role, authorized_apps INTO v_role, v_apps
+  FROM public.workspace_users
+  WHERE workspace_id = _workspace_id
+    AND user_id = auth.uid()
+    AND (expires_at IS NULL OR expires_at > now());
+
+  IF v_role IN ('owner', 'admin', 'member') THEN
+    RETURN TRUE;
+  ELSIF v_role = 'guest' THEN
+    -- If guest, check if the app is in their authorized list
+    RETURN _app_id = ANY(v_apps);
+  END IF;
+
+  RETURN FALSE;
+END;
+$$;
 CREATE OR REPLACE FUNCTION public.has_app_write_access(_workspace_id UUID, _app_id TEXT)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -55,6 +97,9 @@ USING (public.has_app_access(workspace_id, 'transport'))
 WITH CHECK (public.has_app_write_access(workspace_id, 'transport'));
 
 -- 5. Update RPC: create_workspace_access_code
+-- DROP OLD SIGNATURE (to avoid conflicts with changed arguments)
+DROP FUNCTION IF EXISTS public.create_workspace_access_code(UUID, TEXT, TEXT[], INTEGER);
+
 CREATE OR REPLACE FUNCTION public.create_workspace_access_code(
   p_workspace_id UUID,
   p_role TEXT,
