@@ -28,6 +28,7 @@ export function InviteMemberModal({ open, onClose, onSuccess }: InviteMemberModa
     const [role, setRole] = useState<'member' | 'guest'>('guest');
     const [accessDuration, setAccessDuration] = useState('24'); // hours
     const [selectedApps, setSelectedApps] = useState<string[]>(['budget']);
+    const [editableApps, setEditableApps] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export function InviteMemberModal({ open, onClose, onSuccess }: InviteMemberModa
             setRole('guest');
             setAccessDuration('24');
             setSelectedApps(['budget']);
+            setEditableApps([]);
             setError(null);
             setGeneratedCode(null);
             setCopied(false);
@@ -56,6 +58,7 @@ export function InviteMemberModal({ open, onClose, onSuccess }: InviteMemberModa
                 p_workspace_id: activeWorkspaceId,
                 p_role: role,
                 p_authorized_apps: role === 'guest' ? selectedApps : null,
+                p_editable_apps: role === 'guest' ? editableApps : [],
                 p_expires_in_hours: accessDuration === 'Permanent' ? null : parseInt(accessDuration)
             });
 
@@ -79,7 +82,20 @@ export function InviteMemberModal({ open, onClose, onSuccess }: InviteMemberModa
     };
 
     const toggleApp = (appId: string) => {
-        setSelectedApps(prev => 
+        setSelectedApps(prev => {
+            const isRemoving = prev.includes(appId);
+            if (isRemoving) {
+                // Also remove from editable if removing from authorized
+                setEditableApps(e => e.filter(id => id !== appId));
+                return prev.filter(id => id !== appId);
+            }
+            return [...prev, appId];
+        });
+    };
+
+    const toggleEdit = (e: React.MouseEvent, appId: string) => {
+        e.stopPropagation();
+        setEditableApps(prev => 
             prev.includes(appId) ? prev.filter(id => id !== appId) : [...prev, appId]
         );
     };
@@ -168,34 +184,57 @@ export function InviteMemberModal({ open, onClose, onSuccess }: InviteMemberModa
                                     Authorized Applications
                                 </label>
                                 <div className="grid grid-cols-1 gap-2">
-                                    {Object.values(APPS).map(app => (
-                                        <button
-                                            key={app.id}
-                                            type="button"
-                                            onClick={() => toggleApp(app.id)}
-                                            className="flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
-                                            style={{ 
-                                                background: selectedApps.includes(app.id) ? 'var(--ff-navy)' : 'transparent',
-                                                borderColor: selectedApps.includes(app.id) ? 'var(--ff-accent)' : 'var(--ff-border)'
-                                            }}
-                                        >
-                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" 
-                                                style={{ background: `${app.color}20`, color: app.color }}>
-                                                <app.icon size={16} />
+                                    {Object.values(APPS).map(app => {
+                                        const isSelected = selectedApps.includes(app.id);
+                                        const isEditable = editableApps.includes(app.id);
+                                        return (
+                                            <div key={app.id} className="flex flex-col gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleApp(app.id)}
+                                                    className="flex items-center gap-3 p-3 rounded-xl border transition-all text-left w-full"
+                                                    style={{ 
+                                                        background: isSelected ? 'var(--ff-navy)' : 'transparent',
+                                                        borderColor: isSelected ? 'var(--ff-accent)' : 'var(--ff-border)'
+                                                    }}
+                                                >
+                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-all" 
+                                                        style={{ background: isSelected ? `${app.color}20` : '#1e293b', color: isSelected ? app.color : 'var(--ff-text-muted)' }}>
+                                                        <app.icon size={16} />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-medium" style={{ color: isSelected ? 'var(--ff-text-primary)' : 'var(--ff-text-muted)' }}>{app.name}</p>
+                                                        <p className="text-xs" style={{ color: 'var(--ff-text-muted)', fontSize: 10 }}>{app.description}</p>
+                                                    </div>
+                                                    <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                                                        style={{ 
+                                                            borderColor: isSelected ? 'var(--ff-accent)' : 'var(--ff-border)',
+                                                            background: isSelected ? 'var(--ff-accent)' : 'transparent'
+                                                        }}>
+                                                        {isSelected && <Check size={12} color="white" />}
+                                                    </div>
+                                                </button>
+                                                
+                                                {isSelected && (
+                                                    <div className="flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg border border-dashed border-white/10 ml-4 mb-2">
+                                                        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Permissions</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => toggleEdit(e, app.id)}
+                                                            className="flex items-center gap-2 px-3 py-1 rounded-md text-[11px] font-bold transition-all"
+                                                            style={{
+                                                                background: isEditable ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                                                                color: isEditable ? '#22c55e' : 'var(--ff-text-muted)',
+                                                                border: `1px solid ${isEditable ? 'rgba(34, 197, 94, 0.3)' : 'transparent'}`
+                                                            }}
+                                                        >
+                                                            {isEditable ? 'Can Edit' : 'View Only'}
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium" style={{ color: 'var(--ff-text-primary)' }}>{app.name}</p>
-                                                <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>{app.description}</p>
-                                            </div>
-                                            <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
-                                                style={{ 
-                                                    borderColor: selectedApps.includes(app.id) ? 'var(--ff-accent)' : 'var(--ff-border)',
-                                                    background: selectedApps.includes(app.id) ? 'var(--ff-accent)' : 'transparent'
-                                                }}>
-                                                {selectedApps.includes(app.id) && <Check size={12} color="white" />}
-                                            </div>
-                                        </button>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

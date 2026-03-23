@@ -11,7 +11,7 @@ import { Pagination } from '../../components/Pagination';
 import { SearchInput } from '../../components/SearchInput';
 
 export function BudgetExpenses() {
-    const { activeWorkspaceId, isGuest } = useWorkspace();
+    const { activeWorkspaceId, canEditApp } = useWorkspace();
     const [showModal, setShowModal] = useState(false);
     const [monthFilter, setMonthFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
@@ -90,7 +90,7 @@ export function BudgetExpenses() {
             <PageHeader
                 title="Expenses"
                 subtitle="Track all money leaving your household"
-                action={!isGuest && (
+                action={canEditApp('budget') && (
                     <button onClick={() => setShowModal(true)}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}>

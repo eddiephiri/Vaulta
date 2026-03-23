@@ -11,8 +11,10 @@ interface WorkspaceContextType {
     userRole: 'owner' | 'admin' | 'member' | 'guest' | null;
     isGuest: boolean;
     authorizedApps: string[] | null;
+    editableApps: string[] | null;
     loading: boolean;
     isSwitching: boolean;
+    canEditApp: (appId: string) => boolean;
     switchWorkspace: (workspaceId: string, shouldNavigate?: boolean) => Promise<void>;
     createWorkspace: (name: string, description?: string) => Promise<string | null>;
     refreshWorkspaces: () => Promise<void>;
@@ -33,6 +35,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [userRole, setUserRole] = useState<'owner' | 'admin' | 'member' | 'guest' | null>(null);
     const [authorizedApps, setAuthorizedApps] = useState<string[] | null>(null);
+    const [editableApps, setEditableApps] = useState<string[] | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSwitching, setIsSwitching] = useState(false);
 
@@ -52,6 +55,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                 role, 
                 expires_at, 
                 authorized_apps, 
+                editable_apps,
                 workspace:workspaces(*)
             `)
             .eq('user_id', user.id);
@@ -77,9 +81,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                         setActiveWorkspaceId(null);
                         setUserRole(null);
                         setAuthorizedApps(null);
+                        setEditableApps(null);
                     } else {
                         setUserRole(membership.role);
                         setAuthorizedApps(membership.authorized_apps);
+                        setEditableApps(membership.editable_apps);
                     }
                 }
             }
@@ -170,6 +176,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             setIsSwitching(false);
         }
     };
+    
+    const canEditApp = (appId: string): boolean => {
+        if (!userRole) return false;
+        if (['owner', 'admin', 'member'].includes(userRole)) return true;
+        if (userRole === 'guest') {
+            return editableApps?.includes(appId) ?? false;
+        }
+        return false;
+    };
 
     const createWorkspace = async (name: string, description?: string) => {
         if (!user) return null;
@@ -215,11 +230,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         <WorkspaceContext.Provider value={{ 
             activeWorkspaceId, 
             workspaces, 
-            userRole,
+            userRole, 
             isGuest,
             authorizedApps,
+            editableApps,
             loading, 
             isSwitching, 
+            canEditApp,
             switchWorkspace, 
             createWorkspace,
             refreshWorkspaces

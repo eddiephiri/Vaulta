@@ -6,6 +6,7 @@ import { AddVehicleModal } from '../components/AddVehicleModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { Vehicle } from '../types';
 
 const statusColors: Record<string, { bg: string; text: string }> = {
@@ -18,6 +19,7 @@ export function Vehicles() {
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState<Vehicle | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const { canEditApp } = useWorkspace();
     const { vehicles, loading, error, refetch } = useVehicles();
 
     const filteredVehicles = vehicles.filter((v) => {
@@ -43,7 +45,7 @@ export function Vehicles() {
             <PageHeader
                 title="Vehicles"
                 subtitle="Manage your fleet of up to 5 vehicles"
-                action={
+                action={canEditApp('transport') && (
                     <button
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
@@ -54,7 +56,7 @@ export function Vehicles() {
                         <Plus size={16} />
                         Add Vehicle
                     </button>
-                }
+                )}
             />
 
             {error && (
@@ -115,15 +117,17 @@ export function Vehicles() {
                                                 >
                                                     {v.status}
                                                 </span>
-                                                <button
-                                                    onClick={() => openEdit(v)}
-                                                    title="Edit vehicle"
-                                                    style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
-                                                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
-                                                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
-                                                >
-                                                    <Pencil size={14} />
-                                                </button>
+                                                {canEditApp('transport') && (
+                                                    <button
+                                                        onClick={() => openEdit(v)}
+                                                        title="Edit vehicle"
+                                                        style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                                    >
+                                                        <Pencil size={14} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex gap-4 mt-3 pt-3" style={{ borderTop: '1px solid var(--ff-border)' }}>

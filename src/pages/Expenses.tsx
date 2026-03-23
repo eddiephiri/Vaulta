@@ -8,6 +8,7 @@ import { AddExpenseModal } from '../components/AddExpenseModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { ExpenseRecord } from '../types';
 
 const EXPENSE_CATEGORIES = ['fuel', 'service', 'tyre', 'licensing', 'insurance', 'repairs', 'salary', 'wash', 'other'] as const;
@@ -31,6 +32,7 @@ export function Expenses() {
     const { drivers } = useDrivers(true);  // active only
     const { records, loading, error, totalToday, totalThisWeek, totalThisMonth, refetch } =
         useExpenses(vehicleFilter || undefined);
+    const { canEditApp } = useWorkspace();
     const [searchQuery, setSearchQuery] = useState('');
 
     const filtered = records.filter(r => {
@@ -68,7 +70,7 @@ export function Expenses() {
             <PageHeader
                 title="Expenses"
                 subtitle="Track all costs associated with running your fleet in ZMW"
-                action={
+                action={canEditApp('transport') && (
                     <button
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
@@ -77,7 +79,7 @@ export function Expenses() {
                         <Plus size={16} />
                         Add Expense
                     </button>
-                }
+                )}
             />
 
             {error && (
@@ -209,15 +211,17 @@ export function Expenses() {
                                             <Lock size={14} />
                                         </span>
                                     ) : (
-                                        <button
-                                            onClick={() => openEdit(r)}
-                                            title="Edit expense"
-                                            style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
-                                            onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
-                                            onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
-                                        >
-                                            <Pencil size={14} />
-                                        </button>
+                                        canEditApp('transport') && (
+                                            <button
+                                                onClick={() => openEdit(r)}
+                                                title="Edit expense"
+                                                style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                                onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                                onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                            >
+                                                <Pencil size={14} />
+                                            </button>
+                                        )
                                     )}
                                 </div>
                             </div>

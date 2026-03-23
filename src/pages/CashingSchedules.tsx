@@ -11,6 +11,7 @@ import { ResolveCashingModal } from '../components/ResolveCashingModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { ExpectedCashing } from '../types';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -28,6 +29,7 @@ const SOURCE_COLORS: Record<string, string> = {
 };
 
 export function CashingSchedules() {
+    const { canEditApp } = useWorkspace();
     const [showModal, setShowModal] = useState(false);
     const { schedules, loading: schedLoading, error: schedError, refetch } = useCashingSchedules();
     const { overdue, loading: overdueLoading, refetch: refetchOverdue } = useExpectedCashings();
@@ -60,7 +62,7 @@ export function CashingSchedules() {
             <PageHeader
                 title="Cashing Schedules"
                 subtitle="Configure expected cashing rhythms and track overdue payments"
-                action={
+                action={canEditApp('transport') && (
                     <button
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
@@ -69,7 +71,7 @@ export function CashingSchedules() {
                         <Plus size={16} />
                         New Schedule
                     </button>
-                }
+                )}
             />
 
             {/* Overdue alert */}
@@ -98,25 +100,29 @@ export function CashingSchedules() {
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setIncomePrefill({
-                                            vehicle_id: c.vehicle_id,
-                                            expected_cashing_id: c.id,
-                                            expected_date: c.expected_date,
-                                            is_salary_week: c.is_salary_week,
-                                        })}
-                                        className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
-                                        style={{ background: 'var(--ff-green)', color: 'white' }}
-                                    >
-                                        Log Income
-                                    </button>
-                                    <button
-                                        onClick={() => setResolvingCashing(c)}
-                                        className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors hover:opacity-80"
-                                        style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
-                                    >
-                                        Resolve Manually
-                                    </button>
+                                    {canEditApp('transport') && (
+                                        <button
+                                            onClick={() => setIncomePrefill({
+                                                vehicle_id: c.vehicle_id,
+                                                expected_cashing_id: c.id,
+                                                expected_date: c.expected_date,
+                                                is_salary_week: c.is_salary_week,
+                                            })}
+                                            className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
+                                            style={{ background: 'var(--ff-green)', color: 'white' }}
+                                        >
+                                            Log Income
+                                        </button>
+                                    )}
+                                    {canEditApp('transport') && (
+                                        <button
+                                            onClick={() => setResolvingCashing(c)}
+                                            className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors hover:opacity-80"
+                                            style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                                        >
+                                            Resolve Manually
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))}

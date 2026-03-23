@@ -7,12 +7,14 @@ import { AddDriverModal } from '../components/AddDriverModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { Driver } from '../types';
 
 export function Drivers() {
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState<Driver | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const { canEditApp } = useWorkspace();
     const { drivers, loading, error, refetch } = useDrivers();
     const { vehicles } = useVehicles();
 
@@ -40,7 +42,7 @@ export function Drivers() {
             <PageHeader
                 title="Drivers"
                 subtitle="Manage driver profiles, vehicle assignments, and salary information"
-                action={
+                action={canEditApp('transport') && (
                     <button
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                         style={{ background: 'var(--ff-accent)', color: 'white' }}
@@ -49,7 +51,7 @@ export function Drivers() {
                         <Plus size={16} />
                         Add Driver
                     </button>
-                }
+                )}
             />
 
             {error && (
@@ -112,15 +114,17 @@ export function Drivers() {
                                             >
                                                 {driver.active ? 'Active' : 'Inactive'}
                                             </span>
-                                            <button
-                                                onClick={() => openEdit(driver)}
-                                                title="Edit driver"
-                                                style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
-                                                onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
-                                                onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
-                                            >
-                                                <Pencil size={14} />
-                                            </button>
+                                            {canEditApp('transport') && (
+                                                <button
+                                                    onClick={() => openEdit(driver)}
+                                                    title="Edit driver"
+                                                    style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                                >
+                                                    <Pencil size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
 
