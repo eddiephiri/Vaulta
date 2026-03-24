@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, Outlet } from 'rea
 import { useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { AppLauncher } from './pages/AppLauncher';
 import { Dashboard } from './pages/Dashboard';
 import { Vehicles } from './pages/Vehicles';
@@ -45,7 +46,7 @@ export default function App() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'var(--ff-navy)',
+        background: 'var(--ff-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -56,54 +57,56 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter>
-      <AuthEventHandler />
-      <Routes>
-        {!session ? (
-          <>
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="*" element={<Login />} />
-          </>
-        ) : (
-          <>
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route element={
-              <WorkspaceProvider>
-                <Outlet />
-              </WorkspaceProvider>
-            }>
-              <Route index element={<AppLauncher />} />
-              <Route path="join" element={<JoinWorkspace />} />
-              
-              <Route path="transport" element={<Layout />}>
-                <Route index element={<Navigate to="dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="vehicles" element={<Vehicles />} />
-                <Route path="service-history" element={<ServiceHistory />} />
-                <Route path="tyre-changes" element={<TyreChanges />} />
-                <Route path="licensing" element={<Licensing />} />
-                <Route path="income" element={<Income />} />
-                <Route path="expenses" element={<Expenses />} />
-                <Route path="drivers" element={<Drivers />} />
-                <Route path="cashing-schedules" element={<CashingSchedules />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="settings" element={<Settings />} />
-              </Route>
+    <ThemeProvider>
+      <BrowserRouter>
+        <AuthEventHandler />
+        <Routes>
+          {!session ? (
+            <>
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="*" element={<Login />} />
+            </>
+          ) : (
+            <>
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route element={
+                <WorkspaceProvider>
+                  <Outlet />
+                </WorkspaceProvider>
+              }>
+                <Route index element={<AppLauncher />} />
+                <Route path="join" element={<JoinWorkspace />} />
+                
+                <Route path="transport" element={<Layout />}>
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="vehicles" element={<Vehicles />} />
+                  <Route path="service-history" element={<ServiceHistory />} />
+                  <Route path="tyre-changes" element={<TyreChanges />} />
+                  <Route path="licensing" element={<Licensing />} />
+                  <Route path="income" element={<Income />} />
+                  <Route path="expenses" element={<Expenses />} />
+                  <Route path="drivers" element={<Drivers />} />
+                  <Route path="cashing-schedules" element={<CashingSchedules />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="settings" element={<Settings />} />
+                </Route>
 
-              <Route path="budget" element={<Layout />}>
-                <Route index element={<Navigate to="dashboard" replace />} />
-                <Route path="dashboard" element={<BudgetDashboard />} />
-                <Route path="income" element={<BudgetIncome />} />
-                <Route path="expenses" element={<BudgetExpenses />} />
-                <Route path="reports" element={<BudgetReports />} />
-              </Route>
+                <Route path="budget" element={<Layout />}>
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<BudgetDashboard />} />
+                  <Route path="income" element={<BudgetIncome />} />
+                  <Route path="expenses" element={<BudgetExpenses />} />
+                  <Route path="reports" element={<BudgetReports />} />
+                </Route>
 
-              {/* Catch-all for unknown routes inside the authenticated area */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </>
-        )}
-      </Routes>
-    </BrowserRouter>
+                {/* Catch-all for unknown routes inside the authenticated area */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </>
+          )}
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

@@ -1,18 +1,33 @@
 @import "tailwindcss";
 
-/* Vaulta custom theme tokens */
+/* Vaulta Theme Tokens */
 :root {
-  --ff-navy: #0f172a;
-  --ff-navy-light: #1e3a5f;
+  /* Light Theme (Default) */
+  --ff-bg: #f8fafc;
+  --ff-surface: #ffffff;
+  --ff-surface-raised: #f1f5f9;
+  --ff-border: #e2e8f0;
+  --ff-text-primary: #0f172a;
+  --ff-text-muted: #64748b;
+  
   --ff-accent: #3b82f6;
   --ff-accent-hover: #2563eb;
-  --ff-surface: #1e293b;
-  --ff-border: #334155;
-  --ff-text-primary: #f1f5f9;
-  --ff-text-muted: #94a3b8;
   --ff-green: #22c55e;
   --ff-red: #ef4444;
   --ff-amber: #f59e0b;
+  
+  --ff-navy: #0f172a; /* Keep for specific dark elements if needed */
+  --ff-navy-light: #1e3a5f;
+}
+
+.dark {
+  /* Dark Theme Overrides */
+  --ff-bg: #0f172a;
+  --ff-surface: #1e293b;
+  --ff-surface-raised: #334155;
+  --ff-border: #334155;
+  --ff-text-primary: #f1f5f9;
+  --ff-text-muted: #94a3b8;
 }
 
 * {
@@ -22,9 +37,10 @@
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--ff-navy);
+  background-color: var(--ff-bg);
   color: var(--ff-text-primary);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Scrollbar styling */
@@ -33,7 +49,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--ff-navy);
+  background: var(--ff-bg);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -45,10 +61,14 @@ body {
   background: var(--ff-text-muted);
 }
 
-/* Date picker calendar icon — make it visible on dark backgrounds */
-input[type="date"]::-webkit-calendar-picker-indicator {
+/* Date picker calendar icon */
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1) sepia(1) saturate(2) hue-rotate(190deg) brightness(1.2);
   opacity: 0.8;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.6;
   cursor: pointer;
   border-radius: 3px;
   padding: 2px;

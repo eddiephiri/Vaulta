@@ -13,7 +13,7 @@ export function AppLauncher() {
 
     if (loading) {
         return (
-            <div className="flex flex-col h-screen items-center justify-center p-6" style={{ background: 'var(--ff-navy)' }}>
+            <div className="flex flex-col h-screen items-center justify-center p-6" style={{ background: 'var(--ff-bg)' }}>
                 <Loader2 className="animate-spin mb-4" size={32} style={{ color: 'var(--ff-accent)' }} />
                 <p style={{ color: 'var(--ff-text-muted)', fontSize: 14 }}>Loading Workspaces...</p>
             </div>
@@ -23,7 +23,7 @@ export function AppLauncher() {
     // Step 1: Select Workspace
     if (!selectedWorkspaceId || (!activeWorkspaceId && workspaces.length > 0)) {
         return (
-            <div className="flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--ff-navy)' }}>
+            <div className="flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--ff-bg)' }}>
                 <header className="flex flex-col items-center justify-center pt-16 pb-8 border-b"
                     style={{ borderColor: 'var(--ff-border)', background: 'var(--ff-surface)' }}>
                     <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' }}>
@@ -92,7 +92,7 @@ export function AppLauncher() {
     const activeWorkspace = workspaces.find(w => w.id === selectedWorkspaceId);
 
     return (
-        <div className="flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--ff-navy)' }}>
+        <div className="flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--ff-bg)' }}>
             <header className="flex flex-col items-center justify-center pt-16 pb-8 border-b"
                 style={{ borderColor: 'var(--ff-border)', background: 'var(--ff-surface)' }}>
                 <h1 className="text-3xl font-bold" style={{ color: 'var(--ff-text-primary)' }}>

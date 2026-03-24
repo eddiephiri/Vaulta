@@ -33,7 +33,7 @@ export function Login() {
     return (
         <div style={{
             minHeight: '100vh',
-            background: 'var(--ff-navy)',
+            background: 'var(--ff-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -100,7 +100,7 @@ export function Login() {
                                     width: '100%',
                                     padding: '10px 14px',
                                     borderRadius: 8,
-                                    background: 'var(--ff-navy)',
+                                    background: 'var(--ff-bg)',
                                     border: '1px solid var(--ff-border)',
                                     color: 'var(--ff-text-primary)',
                                     fontSize: 14,
@@ -124,7 +124,7 @@ export function Login() {
                                     width: '100%',
                                     padding: '10px 14px',
                                     borderRadius: 8,
-                                    background: 'var(--ff-navy)',
+                                    background: 'var(--ff-bg)',
                                     border: '1px solid var(--ff-border)',
                                     color: 'var(--ff-text-primary)',
                                     fontSize: 14,

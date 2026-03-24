@@ -34,13 +34,13 @@ export function Layout() {
     );
 
     return (
-        <div className="flex h-screen overflow-hidden" style={{ background: 'var(--ff-navy)' }}>
+        <div className="flex h-screen overflow-hidden" style={{ background: 'var(--ff-bg)' }}>
             {/* Sidebar */}
             <aside
                 className="flex flex-col transition-all duration-300 ease-in-out flex-shrink-0"
                 style={{
                     width: collapsed ? '64px' : '220px',
-                    background: 'var(--ff-navy-light)',
+                    background: 'var(--ff-surface-raised)',
                     borderRight: '1px solid var(--ff-border)',
                 }}
             >
@@ -79,7 +79,7 @@ export function Layout() {
                             className={({ isActive }) =>
                                 `flex items-center gap-3 mx-2 mb-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive
                                     ? 'text-white'
-                                    : 'text-slate-400 hover:text-white'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white'
                                 }`
                             }
                             style={({ isActive }) =>
@@ -103,7 +103,7 @@ export function Layout() {
                             className={({ isActive }) =>
                                 `flex items-center gap-3 mx-2 mb-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive
                                     ? 'text-white'
-                                    : 'text-slate-400 hover:text-white'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white'
                                 }`
                             }
                             style={({ isActive }) =>
@@ -130,11 +130,12 @@ export function Layout() {
                 </div>
                 <button
                     onClick={() => setCollapsed(c => !c)}
-                    className="flex items-center justify-center mb-4 mx-auto rounded-full transition-colors"
+                    className="flex items-center justify-center mb-4 mx-auto rounded-full transition-colors border"
                     style={{
                         width: 28,
                         height: 28,
-                        background: 'var(--ff-border)',
+                        background: 'var(--ff-bg)',
+                        borderColor: 'var(--ff-border)',
                         color: 'var(--ff-text-muted)',
                     }}
                     title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}

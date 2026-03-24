@@ -4,11 +4,13 @@ import { useAuth } from '../hooks/useAuth';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { supabase } from '../lib/supabase';
 import { InviteMemberModal } from '../components/InviteMemberModal';
-import { UserPlus, Users, Save, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { UserPlus, Users, Save, CheckCircle2, AlertCircle, X, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function Settings() {
     const { updatePassword } = useAuth();
     const { activeWorkspaceId } = useWorkspace();
+    const { theme, setTheme } = useTheme();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -134,7 +136,7 @@ export function Settings() {
                             onChange={e => setPassword(e.target.value)}
                             placeholder="••••••••"
                             className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:ring-2 focus:ring-blue-500/50 outline-none"
-                            style={{ background: 'var(--ff-navy)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
+                            style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
                         />
                     </div>
 
@@ -148,7 +150,7 @@ export function Settings() {
                             onChange={e => setConfirmPassword(e.target.value)}
                             placeholder="••••••••"
                             className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:ring-2 focus:ring-blue-500/50 outline-none"
-                            style={{ background: 'var(--ff-navy)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
+                            style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
                         />
                     </div>
 
@@ -163,6 +165,42 @@ export function Settings() {
                         </button>
                     </div>
                 </form>
+            </div>
+
+            {/* Application Preferences */}
+            <div className="mb-8 p-6 rounded-2xl border" style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}>
+                <h3 className="text-lg font-semibold mb-6 flex items-center gap-2" style={{ color: 'var(--ff-text-primary)' }}>
+                    Application Preferences
+                </h3>
+                
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="font-medium" style={{ color: 'var(--ff-text-primary)' }}>Appearance</p>
+                        <p className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>Choose your preferred application theme.</p>
+                    </div>
+                    <div className="flex p-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
+                        <button
+                            onClick={() => setTheme('light')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                                theme === 'light' 
+                                ? 'bg-white shadow-sm text-blue-600' 
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                            }`}
+                        >
+                            <Sun size={14} /> Light
+                        </button>
+                        <button
+                            onClick={() => setTheme('dark')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                                theme === 'dark' 
+                                ? 'bg-[#1e293b] shadow-sm text-blue-400' 
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                            }`}
+                        >
+                            <Moon size={14} /> Dark
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Workspace Settings */}
@@ -212,7 +250,7 @@ export function Settings() {
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm whitespace-nowrap">
                                     <thead>
-                                        <tr style={{ background: 'var(--ff-navy)', borderBottom: '1px solid var(--ff-border)' }}>
+                                        <tr style={{ background: 'var(--ff-bg)', borderBottom: '1px solid var(--ff-border)' }}>
                                             <th className="px-5 py-3 font-semibold opacity-50" style={{ color: 'var(--ff-text-muted)' }}>Member</th>
                                             <th className="px-5 py-3 font-semibold opacity-50" style={{ color: 'var(--ff-text-muted)' }}>Role</th>
                                             <th className="px-5 py-3 font-semibold opacity-50" style={{ color: 'var(--ff-text-muted)' }}>Access</th>
@@ -278,7 +316,7 @@ export function Settings() {
                         <div className="grid grid-cols-1 gap-3">
                             {accessCodes.map(ac => (
                                 <div key={ac.id} className="flex items-center justify-between p-4 rounded-xl border" 
-                                    style={{ background: 'var(--ff-navy)', borderColor: 'var(--ff-border)' }}>
+                                    style={{ background: 'var(--ff-bg)', borderColor: 'var(--ff-border)' }}>
                                     <div>
                                         <div className="flex items-center gap-3 mb-1">
                                             <span className="font-mono font-bold text-lg tracking-wider" style={{ color: 'var(--ff-accent)' }}>{ac.code}</span>
@@ -374,7 +412,7 @@ function WorkspaceRenameForm() {
                         value={name}
                         onChange={e => setName(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/50 transition-all outline-none"
-                        style={{ background: 'var(--ff-navy)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
+                        style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
                     />
                 </div>
                 <div>
@@ -387,7 +425,7 @@ function WorkspaceRenameForm() {
                         onChange={e => setDescription(e.target.value)}
                         placeholder="Project or company name..."
                         className="w-full px-4 py-2.5 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/50 transition-all outline-none"
-                        style={{ background: 'var(--ff-navy)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
+                        style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
                     />
                 </div>
             </div>
