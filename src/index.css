@@ -85,3 +85,22 @@ button,
 select {
   cursor: pointer;
 }
+
+/* ── Mobile responsiveness utilities ── */
+
+/* Drawer backdrop overlay */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Hide scrollbar (horizontal chip rows, etc.) */
+.scroll-hide::-webkit-scrollbar { display: none; }
+.scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Minimum touch target for mobile (44×44px per Apple HIG) */
+.touch-target { min-height: 44px; min-width: 44px; }

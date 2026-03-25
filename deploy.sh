@@ -9,6 +9,8 @@ echo "── FleetFlow deploy ────────────────�
 
 # 1. Pull latest code
 echo "[1/3] Pulling latest code..."
+# Remove untracked temporary files that might block the pull
+rm -rf supabase/.temp
 git pull
 
 # 2. Rebuild image with no cache (picks up all new env vars and code changes)

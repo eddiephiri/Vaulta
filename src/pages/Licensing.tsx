@@ -7,6 +7,7 @@ import { AddLicenseModal } from '../components/AddLicenseModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
+import { MobileFilterSheet } from '../components/MobileFilterSheet';
 import type { LicenseRecord } from '../types';
 
 const LICENSE_TYPE_LABELS: Record<string, string> = {
@@ -27,6 +28,7 @@ export function Licensing() {
     const { vehicles } = useVehicles();
     const { records, loading, error, expiring, refetch } = useLicensing(vehicleFilter || undefined);
     const [searchQuery, setSearchQuery] = useState('');
+    const [filtersOpen, setFiltersOpen] = useState(false);
 
     const filtered = records.filter(r => {
         if (!searchQuery) return true;
@@ -52,6 +54,7 @@ export function Licensing() {
     const openAdd = () => { setEditing(null); setShowModal(true); };
     const openEdit = (r: LicenseRecord) => { setEditing(r); setShowModal(true); };
     const handleClose = () => { setShowModal(false); setEditing(null); };
+    const activeFilterCount = [vehicleFilter, searchQuery].filter(Boolean).length;
 
     return (
         <div>
@@ -114,12 +117,11 @@ export function Licensing() {
             </div>
 
             {/* Filter */}
-            <div className="flex gap-3 mb-6 p-4 rounded-xl flex-wrap"
-                style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+            <MobileFilterSheet open={filtersOpen} onToggle={() => setFiltersOpen(f => !f)} filterCount={activeFilterCount}>
                 <select
                     value={vehicleFilter}
                     onChange={e => { setVehicleFilter(e.target.value); setCurrentPage(1); }}
-                    className="text-sm px-3 py-2 rounded-lg"
+                    className="text-sm px-3 py-2 rounded-lg w-full md:w-auto"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                 >
                     <option value="">All Vehicles</option>
@@ -134,7 +136,7 @@ export function Licensing() {
                         placeholder="Search by type, notes, or vehicle plate..."
                     />
                 </div>
-            </div>
+            </MobileFilterSheet>
 
             {loading ? (
                 <div className="flex items-center justify-center h-36">
@@ -183,11 +185,12 @@ export function Licensing() {
                                         <button
                                             onClick={() => openEdit(r)}
                                             title="Edit record"
-                                            style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                            className="touch-target flex items-center justify-center"
+                                            style={{ background: 'none', border: 'none', padding: 10, color: 'var(--ff-text-muted)', borderRadius: 8 }}
                                             onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
                                             onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
                                         >
-                                            <Pencil size={14} />
+                                            <Pencil size={16} />
                                         </button>
                                     </div>
                                 </div>

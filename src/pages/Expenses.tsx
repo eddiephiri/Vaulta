@@ -9,6 +9,7 @@ import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { MobileFilterSheet } from '../components/MobileFilterSheet';
 import type { ExpenseRecord } from '../types';
 
 const EXPENSE_CATEGORIES = ['fuel', 'service', 'tyre', 'licensing', 'insurance', 'repairs', 'salary', 'wash', 'other'] as const;
@@ -27,6 +28,7 @@ export function Expenses() {
     const [monthFilter, setMonthFilter] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState<ExpenseRecord | null>(null);
+    const [filtersOpen, setFiltersOpen] = useState(false);
 
     const { vehicles } = useVehicles();
     const { drivers } = useDrivers(true);  // active only
@@ -34,6 +36,8 @@ export function Expenses() {
         useExpenses(vehicleFilter || undefined);
     const { canEditApp } = useWorkspace();
     const [searchQuery, setSearchQuery] = useState('');
+
+    const activeFilterCount = [vehicleFilter, monthFilter, searchQuery].filter(Boolean).length;
 
     const filtered = records.filter(r => {
         if (categoryFilter && r.metadata?.category !== categoryFilter) return false;
@@ -107,10 +111,10 @@ export function Expenses() {
             </div>
 
             {/* Category breakdown chips */}
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="flex gap-2 mb-6 overflow-x-auto scroll-hide md:flex-wrap md:overflow-visible pb-1">
                 <button
                     onClick={() => setCategoryFilter('')}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
                     style={{
                         background: categoryFilter === '' ? 'var(--ff-accent)' : 'var(--ff-surface)',
                         border: '1px solid var(--ff-border)',
@@ -123,7 +127,7 @@ export function Expenses() {
                     <button
                         key={cat}
                         onClick={() => setCategoryFilter(categoryFilter === cat ? '' : cat)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
                         style={{
                             background: categoryFilter === cat ? `${CAT_COLORS[cat]}30` : 'var(--ff-surface)',
                             border: `1px solid ${categoryFilter === cat ? CAT_COLORS[cat] : 'var(--ff-border)'}`,
@@ -139,10 +143,9 @@ export function Expenses() {
             </div>
 
             {/* Filter bar */}
-            <div className="flex flex-wrap gap-3 mb-6 p-4 rounded-xl"
-                style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+            <MobileFilterSheet open={filtersOpen} onToggle={() => setFiltersOpen(f => !f)} filterCount={activeFilterCount}>
                 <select value={vehicleFilter} onChange={e => { setVehicleFilter(e.target.value); setCurrentPage(1); }}
-                    className="text-sm px-3 py-2 rounded-lg"
+                    className="text-sm px-3 py-2 rounded-lg w-full md:w-auto"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}>
                     <option value="">All Vehicles</option>
                     {vehicles.map(v => (
@@ -150,7 +153,7 @@ export function Expenses() {
                     ))}
                 </select>
                 <input type="month" value={monthFilter} onChange={e => { setMonthFilter(e.target.value); setCurrentPage(1); }}
-                    className="text-sm px-3 py-2 rounded-lg"
+                    className="text-sm px-3 py-2 rounded-lg w-full md:w-auto"
                     style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }} />
                 <div className="flex-1 min-w-[200px]">
                     <SearchInput
@@ -159,7 +162,7 @@ export function Expenses() {
                         placeholder="Search by description, plate, source..."
                     />
                 </div>
-            </div>
+            </MobileFilterSheet>
 
             {loading ? (
                 <div className="flex items-center justify-center h-36">
@@ -215,11 +218,12 @@ export function Expenses() {
                                             <button
                                                 onClick={() => openEdit(r)}
                                                 title="Edit expense"
-                                                style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                                className="touch-target flex items-center justify-center"
+                                                style={{ background: 'none', border: 'none', padding: 10, color: 'var(--ff-text-muted)', borderRadius: 8 }}
                                                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
                                                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
                                             >
-                                                <Pencil size={14} />
+                                                <Pencil size={16} />
                                             </button>
                                         )
                                     )}

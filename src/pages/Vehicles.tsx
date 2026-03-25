@@ -125,7 +125,7 @@ export function Vehicles() {
                                                         onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
                                                         onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
                                                     >
-                                                        <Pencil size={14} />
+                                                        <Pencil size={16} />
                                                     </button>
                                                 )}
                                             </div>

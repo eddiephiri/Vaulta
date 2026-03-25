@@ -19,6 +19,7 @@ import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { Settings } from './pages/Settings';
 import { useAuth } from './hooks/useAuth';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { BudgetDashboard } from './pages/budget/BudgetDashboard';
 import { BudgetIncome } from './pages/budget/BudgetIncome';
 import { BudgetExpenses } from './pages/budget/BudgetExpenses';
@@ -40,6 +41,9 @@ function AuthEventHandler() {
 
 export default function App() {
   const { session, loading } = useAuth();
+
+  // Enable idle timeout (30 minutes)
+  useIdleTimeout();
 
   // While checking session, show a minimal loader so there's no flash
   if (loading) {
