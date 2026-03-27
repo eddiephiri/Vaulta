@@ -305,7 +305,7 @@ export function Settings() {
                             <div className="md:hidden space-y-3">
                                 {members.map((m) => (
                                     <div key={m.user_id} className="p-4 rounded-xl border flex flex-col gap-3" 
-                                        style={{ background: 'var(--ff-navy)', borderColor: 'var(--ff-border)' }}>
+                                        style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}>
                                         <div className="flex items-center justify-between">
                                             <p className="font-medium text-sm truncate" style={{ color: 'var(--ff-text-primary)' }}>{m.email}</p>
                                             <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border"

@@ -92,7 +92,7 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles, initialData
     };
 
     const inputStyle = {
-        background: 'var(--ff-navy)',
+        background: 'var(--ff-surface)',
         border: '1px solid var(--ff-border)',
         color: 'var(--ff-text-primary)',
         borderRadius: '8px',

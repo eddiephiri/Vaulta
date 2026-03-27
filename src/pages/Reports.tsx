@@ -42,7 +42,7 @@ export function Reports() {
                         value={fromDate}
                         onChange={e => setFromDate(e.target.value)}
                         className="text-sm px-3 py-2 rounded-lg w-full"
-                        style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                        style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                     />
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-auto">
@@ -52,14 +52,14 @@ export function Reports() {
                         value={toDate}
                         onChange={e => setToDate(e.target.value)}
                         className="text-sm px-3 py-2 rounded-lg w-full"
-                        style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                        style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                     />
                 </div>
                 <select
                     value={vehicleFilter}
                     onChange={e => setVehicleFilter(e.target.value)}
                     className="text-sm px-3 py-2 rounded-lg w-full md:w-auto"
-                    style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                    style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                 >
                     <option value="">All Vehicles</option>
                 </select>

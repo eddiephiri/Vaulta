@@ -86,7 +86,7 @@ export function BudgetExpenses() {
         }
     };
 
-    const inputStyle = { background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)', borderRadius: 8, padding: '8px 12px', width: '100%' };
+    const inputStyle = { background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)', borderRadius: 8, padding: '8px 12px', width: '100%' };
 
     return (
         <div>

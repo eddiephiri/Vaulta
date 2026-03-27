@@ -59,7 +59,7 @@ export function CreateWorkspaceModal({ open, onClose }: CreateWorkspaceModalProp
                             value={name}
                             onChange={e => setName(e.target.value)}
                             className="w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 outline-none focus:ring-2 focus:ring-blue-500/50"
-                            style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                            style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                         />
                     </div>
 
@@ -73,7 +73,7 @@ export function CreateWorkspaceModal({ open, onClose }: CreateWorkspaceModalProp
                             onChange={e => setDescription(e.target.value)}
                             rows={3}
                             className="w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
-                            style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                            style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                         />
                     </div>
 

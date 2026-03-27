@@ -29,7 +29,7 @@ const REMINDER_DAYS = [
 ];
 
 const INPUT_STYLE = {
-    background: 'var(--ff-navy)',
+    background: 'var(--ff-surface)',
     color: 'var(--ff-text-primary)',
     border: '1px solid var(--ff-border)',
     borderRadius: 8,
@@ -211,7 +211,7 @@ export function AddLicenseModal({ open, onClose, onSuccess, vehicles, initialDat
                     <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                         <button type="button" onClick={onClose} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
-                            background: 'var(--ff-navy)', color: 'var(--ff-text-muted)',
+                            background: 'var(--ff-surface)', color: 'var(--ff-text-muted)',
                             border: '1px solid var(--ff-border)',
                         }}>Cancel</button>
                         <button type="submit" disabled={submitting} style={{

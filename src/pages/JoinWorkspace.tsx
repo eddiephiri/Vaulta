@@ -51,7 +51,7 @@ export function JoinWorkspace() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'var(--ff-navy)' }}>
+        <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'var(--ff-bg)' }}>
             <div className="w-full max-w-md">
                 <div className="flex flex-col items-center mb-8">
                     <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg" 
@@ -90,7 +90,7 @@ export function JoinWorkspace() {
                                     onChange={(e) => setCode(e.target.value)}
                                     className="w-full text-2xl font-mono text-center tracking-widest uppercase py-4 rounded-xl border focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
                                     style={{ 
-                                        background: 'var(--ff-navy)', 
+                                        background: 'var(--ff-surface)', 
                                         color: 'var(--ff-text-primary)', 
                                         borderColor: 'var(--ff-border)' 
                                     }}

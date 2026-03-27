@@ -12,7 +12,7 @@ interface InviteMemberModalProps {
 }
 
 const INPUT_STYLE = {
-    background: 'var(--ff-navy)',
+    background: 'var(--ff-surface)',
     color: 'var(--ff-text-primary)',
     border: '1px solid var(--ff-border)',
     borderRadius: 8,
@@ -130,7 +130,7 @@ export function InviteMemberModal({ open, onClose, onSuccess }: InviteMemberModa
                             Share this code with your guest to join:
                         </p>
                         <div className="flex items-center gap-3 w-full p-4 rounded-xl border mb-6" 
-                            style={{ background: 'var(--ff-navy)', borderColor: 'var(--ff-border)' }}>
+                            style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}>
                             <span className="flex-1 text-3xl font-mono font-bold tracking-widest text-center" 
                                 style={{ color: 'var(--ff-accent)' }}>
                                 {generatedCode}
@@ -195,7 +195,7 @@ export function InviteMemberModal({ open, onClose, onSuccess }: InviteMemberModa
                                                     onClick={() => toggleApp(app.id)}
                                                     className="flex items-center gap-3 p-3 rounded-xl border transition-all text-left w-full"
                                                     style={{ 
-                                                        background: isSelected ? 'var(--ff-navy)' : 'transparent',
+                                                        background: isSelected ? 'var(--ff-surface)' : 'transparent',
                                                         borderColor: isSelected ? 'var(--ff-accent)' : 'var(--ff-border)'
                                                     }}
                                                 >

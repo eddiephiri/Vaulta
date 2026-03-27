@@ -107,7 +107,7 @@ export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles, dr
     };
 
     const inputStyle = {
-        background: 'var(--ff-navy)',
+        background: 'var(--ff-surface)',
         border: '1px solid var(--ff-border)',
         color: 'var(--ff-text-primary)',
         borderRadius: '8px',

@@ -118,7 +118,7 @@ export function CashingSchedules() {
                                         <button
                                             onClick={() => setResolvingCashing(c)}
                                             className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors hover:opacity-80"
-                                            style={{ background: 'var(--ff-navy)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                                            style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                                         >
                                             Resolve Manually
                                         </button>
@@ -180,26 +180,26 @@ export function CashingSchedules() {
 
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
                                             <div className="text-center rounded-lg p-2"
-                                                style={{ background: 'var(--ff-navy)' }}>
+                                                style={{ background: 'var(--ff-surface)' }}>
                                                 <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>Anchor</p>
                                                 <p className="text-xs font-semibold mt-0.5">
                                                     {s.anchor_date ?? '—'}
                                                 </p>
                                             </div>
                                             <div className="text-center rounded-lg p-2"
-                                                style={{ background: 'var(--ff-navy)' }}>
+                                                style={{ background: 'var(--ff-surface)' }}>
                                                 <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>Cashing Day</p>
                                                 <p className="text-sm font-semibold mt-0.5">
                                                     {s.cashing_day_of_week != null ? DAYS[s.cashing_day_of_week] : 'Flexible'}
                                                 </p>
                                             </div>
                                             <div className="text-center rounded-lg p-2"
-                                                style={{ background: 'var(--ff-navy)' }}>
+                                                style={{ background: 'var(--ff-surface)' }}>
                                                 <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>Cycle</p>
                                                 <p className="text-sm font-semibold mt-0.5">{s.cycle_weeks} weeks</p>
                                             </div>
                                             <div className="text-center rounded-lg p-2"
-                                                style={{ background: 'var(--ff-navy)' }}>
+                                                style={{ background: 'var(--ff-surface)' }}>
                                                 <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>Salary Wk</p>
                                                 <p className="text-sm font-semibold mt-0.5">Week {s.salary_week}</p>
                                             </div>
