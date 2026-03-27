@@ -86,7 +86,7 @@ export interface CashingSchedule {
 
 // ─── Expected Cashings ────────────────────────────────────────────────────────
 
-export type CashingStatus = 'pending' | 'recorded' | 'late_driver' | 'late_admin';
+export type CashingStatus = 'pending' | 'recorded' | 'late_driver' | 'late_admin' | 'deferred_to_salary';
 
 export interface ExpectedCashing {
     id: string;

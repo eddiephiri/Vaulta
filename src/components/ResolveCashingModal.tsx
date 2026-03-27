@@ -31,7 +31,7 @@ const LABEL_STYLE = {
 } as const;
 
 export function ResolveCashingModal({ open, onClose, onSuccess, cashing }: ResolveCashingModalProps) {
-    const [status, setStatus] = useState<'recorded' | 'late_driver' | 'late_admin'>('recorded');
+    const [status, setStatus] = useState<'recorded' | 'late_driver' | 'late_admin' | 'deferred_to_salary'>('recorded');
     const [notes, setNotes] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -116,11 +116,12 @@ export function ResolveCashingModal({ open, onClose, onSuccess, cashing }: Resol
                         <select
                             style={INPUT_STYLE}
                             value={status}
-                            onChange={(e) => setStatus(e.target.value as 'recorded' | 'late_driver' | 'late_admin')}
+                            onChange={(e) => setStatus(e.target.value as 'recorded' | 'late_driver' | 'late_admin' | 'deferred_to_salary')}
                         >
                             <option value="recorded">Income already recorded (on time)</option>
                             <option value="late_admin">Income already recorded (I forgot to log it on time)</option>
                             <option value="late_driver">Resolved (driver was late/excused)</option>
+                            <option value="deferred_to_salary">Deferred to salary week (payback later)</option>
                         </select>
                     </div>
 
