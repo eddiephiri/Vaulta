@@ -1,7 +1,7 @@
 import { 
     LayoutDashboard, Car, Wrench, CircleDot, FileCheck2, 
     TrendingUp, Receipt, Users, CalendarClock, BarChart3,
-    Wallet, Home, ShoppingCart
+    Wallet, Home, ShoppingCart, CreditCard
 } from 'lucide-react';
 
 export interface NavItem {
@@ -51,7 +51,19 @@ export const APPS: Record<string, AppModule> = {
             { to: '/budget/expenses', icon: ShoppingCart, label: 'Expenses' },
             { to: '/budget/reports', icon: BarChart3, label: 'Reports' },
         ],
-    }
+    },
+    personal: {
+        id: 'personal',
+        name: 'Personal Expenses',
+        description: 'Track personal spending — fuel, food, clothing, and more.',
+        icon: CreditCard,
+        color: '#8b5cf6', // violet
+        navItems: [
+            { to: '/personal/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { to: '/personal/expenses', icon: Receipt, label: 'Expenses' },
+            { to: '/personal/reports', icon: BarChart3, label: 'Reports' },
+        ],
+    },
 };
 
 export const getAppByPath = (pathname: string): AppModule | undefined => {

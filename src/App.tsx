@@ -24,6 +24,9 @@ import { BudgetDashboard } from './pages/budget/BudgetDashboard';
 import { BudgetIncome } from './pages/budget/BudgetIncome';
 import { BudgetExpenses } from './pages/budget/BudgetExpenses';
 import { BudgetReports } from './pages/budget/BudgetReports';
+import { PersonalDashboard } from './pages/personal/PersonalDashboard';
+import { PersonalExpenses } from './pages/personal/PersonalExpenses';
+import { PersonalReports } from './pages/personal/PersonalReports';
 import { JoinWorkspace } from './pages/JoinWorkspace';
 
 function AuthEventHandler() {
@@ -104,6 +107,13 @@ export default function App() {
                   <Route path="reports" element={<BudgetReports />} />
                 </Route>
 
+                <Route path="personal" element={<Layout />}>
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<PersonalDashboard />} />
+                  <Route path="expenses" element={<PersonalExpenses />} />
+                  <Route path="reports" element={<PersonalReports />} />
+                </Route>
+
                 {/* Catch-all for unknown routes inside the authenticated area */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
@@ -114,3 +124,4 @@ export default function App() {
     </ThemeProvider>
   );
 }
+

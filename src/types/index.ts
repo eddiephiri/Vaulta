@@ -289,3 +289,34 @@ export interface BudgetExpenseRecord extends TransactionRecord {
     type: 'expense';
     metadata: BudgetTransactionMetadata;
 }
+
+// ─── Personal Expenses ───────────────────────────────────────────────────────
+
+export type PersonalExpenseCategory =
+    | 'fuel'
+    | 'food'
+    | 'clothing'
+    | 'transport'
+    | 'entertainment'
+    | 'health'
+    | 'education'
+    | 'gifts'
+    | 'subscriptions'
+    | 'other';
+
+export type PersonalPaymentMethod =
+    | 'cash'
+    | 'mobile_money'
+    | 'card'
+    | 'bank_transfer';
+
+export interface PersonalExpenseMetadata {
+    category: PersonalExpenseCategory;
+    payment_method?: PersonalPaymentMethod | null;
+    notes?: string;
+}
+
+export interface PersonalExpenseRecord extends TransactionRecord {
+    type: 'expense';
+    metadata: PersonalExpenseMetadata;
+}
