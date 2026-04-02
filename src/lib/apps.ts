@@ -61,6 +61,7 @@ export const APPS: Record<string, AppModule> = {
         navItems: [
             { to: '/personal/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
             { to: '/personal/expenses', icon: Receipt, label: 'Expenses' },
+            { to: '/personal/subscriptions', icon: CalendarClock, label: 'Subscriptions' },
             { to: '/personal/reports', icon: BarChart3, label: 'Reports' },
         ],
     },

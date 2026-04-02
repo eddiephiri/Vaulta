@@ -27,6 +27,7 @@ import { BudgetReports } from './pages/budget/BudgetReports';
 import { PersonalDashboard } from './pages/personal/PersonalDashboard';
 import { PersonalExpenses } from './pages/personal/PersonalExpenses';
 import { PersonalReports } from './pages/personal/PersonalReports';
+import { PersonalSubscriptions } from './pages/personal/PersonalSubscriptions';
 import { JoinWorkspace } from './pages/JoinWorkspace';
 
 function AuthEventHandler() {
@@ -111,6 +112,7 @@ export default function App() {
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<PersonalDashboard />} />
                   <Route path="expenses" element={<PersonalExpenses />} />
+                  <Route path="subscriptions" element={<PersonalSubscriptions />} />
                   <Route path="reports" element={<PersonalReports />} />
                 </Route>
 

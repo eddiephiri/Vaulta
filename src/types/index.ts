@@ -320,3 +320,22 @@ export interface PersonalExpenseRecord extends TransactionRecord {
     type: 'expense';
     metadata: PersonalExpenseMetadata;
 }
+
+// ─── Subscriptions ───────────────────────────────────────────────────────────
+
+export type SubscriptionCycle = 'weekly' | 'monthly' | 'yearly';
+export type SubscriptionStatus = 'active' | 'canceled';
+
+export interface Subscription {
+    id: string;
+    workspace_id: string;
+    app_id: string;
+    provider: string;
+    amount_zmw: number;
+    billing_cycle: SubscriptionCycle;
+    next_billing_date: string;
+    status: SubscriptionStatus;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+}
