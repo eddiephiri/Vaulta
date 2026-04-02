@@ -132,7 +132,7 @@ export function PersonalSubscriptions() {
             refetch();
         } else {
             console.error(supaErr);
-            alert("Error saving subscription");
+            alert(`Error saving subscription: ${supaErr.message}`);
         }
     };
 
