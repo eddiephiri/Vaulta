@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Pencil, X, CalendarClock, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Pencil, X, CalendarClock, AlertCircle, CheckCircle } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
 import { useSubscriptions } from '../../hooks/personal/useSubscriptions';
 import { supabase } from '../../lib/supabase';
@@ -37,7 +37,9 @@ export function PersonalSubscriptions() {
     const [filterStatus, setFilterStatus] = useState<SubscriptionStatus>('active');
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState<string | null>(null);
+    const [loggingPayment, setLoggingPayment] = useState<string | null>(null);
     const [form, setForm] = useState<FormState>(emptyForm());
+    const [paidUpfront, setPaidUpfront] = useState(false);
 
     const { subscriptions, loading, error, refetch } = useSubscriptions();
 
@@ -90,6 +92,7 @@ export function PersonalSubscriptions() {
     const openAddModal = () => {
         setEditingSub(null);
         setForm(emptyForm());
+        setPaidUpfront(false);
         setShowModal(true);
     };
 
@@ -126,6 +129,22 @@ export function PersonalSubscriptions() {
             ? await supabase.from('subscriptions').update(payload).eq('id', editingSub.id)
             : await supabase.from('subscriptions').insert(payload);
 
+        if (!supaErr && !editingSub && paidUpfront) {
+            // Log the initial upfront payment
+            await supabase.from('transactions').insert({
+                workspace_id: activeWorkspaceId,
+                app_id: 'personal',
+                type: 'expense',
+                amount_zmw: parseFloat(form.amount_zmw),
+                date: new Date().toISOString().slice(0, 10),
+                description: `${form.provider} Subscription`,
+                metadata: {
+                    category: 'subscriptions',
+                    notes: 'Paid upfront upon creation',
+                },
+            });
+        }
+
         setSaving(false);
         if (!supaErr) {
             setShowModal(false);
@@ -141,6 +160,43 @@ export function PersonalSubscriptions() {
         setDeleting(id);
         await supabase.from('subscriptions').delete().eq('id', id);
         setDeleting(null);
+        refetch();
+    };
+
+    const handleLogPayment = async (sub: Subscription) => {
+        if (!activeWorkspaceId) return;
+        if (!window.confirm(`Log payment of ZMW ${fmt(Number(sub.amount_zmw))} for ${sub.provider}? This will log an expense and roll the next billing date forward.`)) return;
+        
+        setLoggingPayment(sub.id);
+        
+        // 1. Insert Expense
+        await supabase.from('transactions').insert({
+            workspace_id: activeWorkspaceId,
+            app_id: 'personal',
+            type: 'expense',
+            amount_zmw: sub.amount_zmw,
+            date: new Date().toISOString().slice(0, 10),
+            description: `${sub.provider} Subscription`,
+            metadata: {
+                category: 'subscriptions',
+            },
+        });
+        
+        // 2. Roll forward next_billing_date
+        const nextDate = new Date(sub.next_billing_date);
+        if (sub.billing_cycle === 'weekly') {
+            nextDate.setDate(nextDate.getDate() + 7);
+        } else if (sub.billing_cycle === 'monthly') {
+            nextDate.setMonth(nextDate.getMonth() + 1);
+        } else if (sub.billing_cycle === 'yearly') {
+            nextDate.setFullYear(nextDate.getFullYear() + 1);
+        }
+        
+        await supabase.from('subscriptions').update({
+            next_billing_date: nextDate.toISOString().slice(0, 10)
+        }).eq('id', sub.id);
+        
+        setLoggingPayment(null);
         refetch();
     };
 
@@ -223,7 +279,7 @@ export function PersonalSubscriptions() {
                                 style={{
                                     background: 'var(--ff-surface)',
                                     border: isUpcoming ? '1px solid #f59e0b50' : '1px solid var(--ff-border)',
-                                    opacity: deleting === sub.id ? 0.5 : 1
+                                    opacity: deleting === sub.id || loggingPayment === sub.id ? 0.5 : 1
                                 }}>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
@@ -255,6 +311,15 @@ export function PersonalSubscriptions() {
                                     </div>
                                     {canEditApp('personal') && (
                                         <div className="flex items-center gap-1">
+                                            {sub.status === 'active' && (
+                                                <button onClick={() => handleLogPayment(sub)} title="Log Payment & Roll Date"
+                                                    className="p-1.5 rounded-lg transition-colors mr-1"
+                                                    style={{ color: '#10b981', background: '#10b98115', border: 'none' }}
+                                                    onMouseEnter={e => (e.currentTarget.style.background = '#10b98130')}
+                                                    onMouseLeave={e => (e.currentTarget.style.background = '#10b98115')}>
+                                                    <CheckCircle size={16} />
+                                                </button>
+                                            )}
                                             <button onClick={() => openEditModal(sub)} title="Edit"
                                                 className="p-1.5 rounded-lg transition-colors"
                                                 style={{ color: 'var(--ff-text-muted)', background: 'none', border: 'none' }}
@@ -338,6 +403,17 @@ export function PersonalSubscriptions() {
                                     style={{ ...inputStyle, resize: 'vertical' } as React.CSSProperties}
                                     placeholder="Any additional notes…" />
                             </div>
+
+                            {!editingSub && (
+                                <div className="flex items-center gap-2 mt-2">
+                                    <input type="checkbox" id="paidUpfront" 
+                                        checked={paidUpfront} onChange={e => setPaidUpfront(e.target.checked)} 
+                                        style={{ width: 16, height: 16, accentColor: '#06b6d4' }} />
+                                    <label htmlFor="paidUpfront" className="text-sm font-medium" style={{ color: 'var(--ff-text-primary)', cursor: 'pointer' }}>
+                                        I paid this upfront (Log initial expense now)
+                                    </label>
+                                </div>
+                            )}
 
                             <div className="flex gap-3 pt-2">
                                 <button type="button" onClick={() => { setShowModal(false); setEditingSub(null); }}
