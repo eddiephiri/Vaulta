@@ -339,3 +339,34 @@ export interface Subscription {
     created_at: string;
     updated_at: string;
 }
+
+// ─── Wishlists ────────────────────────────────────────────────────────────────
+
+export type WishlistPriority = 'low' | 'medium' | 'high';
+export type WishlistStatus   = 'active' | 'purchased' | 'archived';
+
+export interface WishlistItem {
+    id: string;
+    workspace_id: string;
+    app_id: string;
+    name: string;
+    description?: string;
+    estimated_price_zmw: number;
+    priority: WishlistPriority;
+    category?: string | null;
+    status: WishlistStatus;
+    target_date?: string | null;
+    purchase_date?: string | null;
+    actual_price_zmw?: number | null;
+    linked_transaction_id?: string | null;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+// Per-app category suggestions (free-text is always allowed via "Other / custom")
+export const WISHLIST_CATEGORIES: Record<string, string[]> = {
+    transport: ['Vehicle', 'Tool', 'Equipment', 'Safety Gear', 'Spare Parts', 'Other'],
+    budget:    ['Appliance', 'Furniture', 'Electronics', 'Home Improvement', 'Savings Goal', 'Other'],
+    personal:  ['Clothing', 'Electronics', 'Travel', 'Books', 'Health & Fitness', 'Entertainment', 'Other'],
+};

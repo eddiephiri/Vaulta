@@ -28,6 +28,7 @@ import { PersonalDashboard } from './pages/personal/PersonalDashboard';
 import { PersonalExpenses } from './pages/personal/PersonalExpenses';
 import { PersonalReports } from './pages/personal/PersonalReports';
 import { PersonalSubscriptions } from './pages/personal/PersonalSubscriptions';
+import { Wishlist } from './pages/Wishlist';
 import { JoinWorkspace } from './pages/JoinWorkspace';
 
 function AuthEventHandler() {
@@ -98,6 +99,7 @@ export default function App() {
                   <Route path="cashing-schedules" element={<CashingSchedules />} />
                   <Route path="reports" element={<Reports />} />
                   <Route path="settings" element={<Settings />} />
+                  <Route path="wishlist" element={<Wishlist />} />
                 </Route>
 
                 <Route path="budget" element={<Layout />}>
@@ -106,6 +108,7 @@ export default function App() {
                   <Route path="income" element={<BudgetIncome />} />
                   <Route path="expenses" element={<BudgetExpenses />} />
                   <Route path="reports" element={<BudgetReports />} />
+                  <Route path="wishlist" element={<Wishlist />} />
                 </Route>
 
                 <Route path="personal" element={<Layout />}>
@@ -114,6 +117,7 @@ export default function App() {
                   <Route path="expenses" element={<PersonalExpenses />} />
                   <Route path="subscriptions" element={<PersonalSubscriptions />} />
                   <Route path="reports" element={<PersonalReports />} />
+                  <Route path="wishlist" element={<Wishlist />} />
                 </Route>
 
                 {/* Catch-all for unknown routes inside the authenticated area */}

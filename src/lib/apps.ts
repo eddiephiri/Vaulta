@@ -1,7 +1,7 @@
 import { 
     LayoutDashboard, Car, Wrench, CircleDot, FileCheck2, 
     TrendingUp, Receipt, Users, CalendarClock, BarChart3,
-    Wallet, Home, ShoppingCart, CreditCard
+    Wallet, Home, ShoppingCart, CreditCard, Gift
 } from 'lucide-react';
 
 export interface NavItem {
@@ -37,6 +37,7 @@ export const APPS: Record<string, AppModule> = {
             { to: '/transport/drivers', icon: Users, label: 'Drivers' },
             { to: '/transport/cashing-schedules', icon: CalendarClock, label: 'Schedules' },
             { to: '/transport/reports', icon: BarChart3, label: 'Reports' },
+            { to: '/transport/wishlist', icon: Gift, label: 'Wishlist' },
         ],
     },
     budget: {
@@ -50,6 +51,7 @@ export const APPS: Record<string, AppModule> = {
             { to: '/budget/income', icon: Wallet, label: 'Income & Funding' },
             { to: '/budget/expenses', icon: ShoppingCart, label: 'Expenses' },
             { to: '/budget/reports', icon: BarChart3, label: 'Reports' },
+            { to: '/budget/wishlist', icon: Gift, label: 'Wishlist' },
         ],
     },
     personal: {
@@ -63,6 +65,7 @@ export const APPS: Record<string, AppModule> = {
             { to: '/personal/expenses', icon: Receipt, label: 'Expenses' },
             { to: '/personal/subscriptions', icon: CalendarClock, label: 'Subscriptions' },
             { to: '/personal/reports', icon: BarChart3, label: 'Reports' },
+            { to: '/personal/wishlist', icon: Gift, label: 'Wishlist' },
         ],
     },
 };
