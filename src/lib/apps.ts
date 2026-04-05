@@ -1,8 +1,9 @@
 import { 
     LayoutDashboard, Car, Wrench, CircleDot, FileCheck2, 
     TrendingUp, Receipt, Users, CalendarClock, BarChart3,
-    Wallet, Home, ShoppingCart, CreditCard, Gift
+    Wallet, Home, ShoppingCart, CreditCard, Gift, ClipboardList
 } from 'lucide-react';
+
 
 export interface NavItem {
     to: string;
@@ -48,6 +49,7 @@ export const APPS: Record<string, AppModule> = {
         color: '#10b981', // emerald
         navItems: [
             { to: '/budget/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { to: '/budget/budget-sheets', icon: ClipboardList, label: 'Budget Sheets' },
             { to: '/budget/income', icon: Wallet, label: 'Income & Funding' },
             { to: '/budget/expenses', icon: ShoppingCart, label: 'Expenses' },
             { to: '/budget/reports', icon: BarChart3, label: 'Reports' },

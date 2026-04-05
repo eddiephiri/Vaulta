@@ -370,3 +370,45 @@ export const WISHLIST_CATEGORIES: Record<string, string[]> = {
     budget:    ['Appliance', 'Furniture', 'Electronics', 'Home Improvement', 'Savings Goal', 'Other'],
     personal:  ['Clothing', 'Electronics', 'Travel', 'Books', 'Health & Fitness', 'Entertainment', 'Other'],
 };
+
+// ─── Budget Sheets ────────────────────────────────────────────
+
+export type BudgetSheetStatus = 'open' | 'closed';
+
+export interface BudgetSheet {
+    id: string;
+    workspace_id: string;
+    name: string;
+    description?: string | null;
+    month?: string | null;      // YYYY-MM
+    status: BudgetSheetStatus;
+    notes?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface BudgetSheetItem {
+    id: string;
+    sheet_id: string;
+    workspace_id: string;
+    name: string;
+    category?: string | null;
+    estimated_zmw: number;
+    actual_zmw?: number | null;  // filled in after purchase
+    is_purchased: boolean;
+    purchased_at?: string | null;
+    notes?: string | null;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+}
+
+// Computed totals attached to a sheet by the hook
+export interface BudgetSheetWithTotals extends BudgetSheet {
+    items: BudgetSheetItem[];
+    totalItems: number;
+    purchasedCount: number;
+    totalEstimated: number;
+    totalActual: number;         // sum of actual_zmw (falls back to estimated for unpaid)
+    totalPaid: number;           // sum of actual_zmw for purchased items only
+}
