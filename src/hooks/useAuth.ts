@@ -35,7 +35,11 @@ export function useAuth(): UseAuthReturn {
     }, []);
 
     const signIn = async (email: string, password: string) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (data.user && !error) {
+            const { registerDeviceSession } = await import('./useSessionSecurity');
+            await registerDeviceSession(data.user.id);
+        }
         return { error: error as Error | null };
     };
 
