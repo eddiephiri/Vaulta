@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { Vehicle, Driver } from '../types';
 
 interface Props {
@@ -24,6 +25,7 @@ const INITIAL = {
 
 export function AddDriverModal({ open, onClose, onSuccess, vehicles, initialData }: Props) {
     const isEdit = !!initialData;
+    const { activeWorkspaceId } = useWorkspace();
 
     const [form, setForm] = useState(INITIAL);
     const [saving, setSaving] = useState(false);
@@ -62,6 +64,7 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles, initialData
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.name.trim()) { setError('Driver name is required'); return; }
+        if (!isEdit && !activeWorkspaceId) { setError('No active workspace selected.'); return; }
 
         setSaving(true);
         setError(null);
@@ -79,7 +82,7 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles, initialData
 
         const { error: supaErr } = isEdit
             ? await supabase.from('drivers').update(payload).eq('id', initialData!.id)
-            : await supabase.from('drivers').insert(payload);
+            : await supabase.from('drivers').insert({ ...payload, workspace_id: activeWorkspaceId });
 
         if (supaErr) {
             setError(supaErr.message);

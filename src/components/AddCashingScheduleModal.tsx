@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { Vehicle, IncomeSource, Driver } from '../types';
 
 interface Props {
@@ -31,6 +32,7 @@ const INITIAL = {
 };
 
 export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles, drivers }: Props) {
+    const { activeWorkspaceId } = useWorkspace();
     const [form, setForm] = useState(INITIAL);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -66,11 +68,13 @@ export function AddCashingScheduleModal({ open, onClose, onSuccess, vehicles, dr
             setError('Please set the cycle start / driver hire date');
             return;
         }
+        if (!activeWorkspaceId) { setError('No active workspace selected.'); return; }
 
         setSaving(true);
         setError(null);
 
         const payload = {
+            workspace_id: activeWorkspaceId,
             vehicle_id: form.vehicle_id,
             income_source: form.income_source,
             cashing_day_of_week: form.cashing_day_of_week !== '' ? parseInt(form.cashing_day_of_week) : null,

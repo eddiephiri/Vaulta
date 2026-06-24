@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_access_codes (
 ALTER TABLE public.workspace_access_codes ENABLE ROW LEVEL SECURITY;
 
 -- Only Owners/Admins can manage access codes
+DROP POLICY IF EXISTS "Owners and admins can manage access codes" ON public.workspace_access_codes;
 CREATE POLICY "Owners and admins can manage access codes"
 ON public.workspace_access_codes
 FOR ALL
@@ -216,6 +217,7 @@ WITH CHECK (
 );
 
 -- Allow Guests to SELECT transactions even if they can't WRITE
+DROP POLICY IF EXISTS "Guests can VIEW transactions" ON public.transactions;
 CREATE POLICY "Guests can VIEW transactions"
 ON public.transactions
 FOR SELECT
@@ -237,6 +239,7 @@ WITH CHECK (
   ) != 'guest'
 );
 
+DROP POLICY IF EXISTS "Guests can VIEW vehicles" ON public.vehicles;
 CREATE POLICY "Guests can VIEW vehicles"
 ON public.vehicles
 FOR SELECT

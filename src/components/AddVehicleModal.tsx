@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { Vehicle, VehicleStatus } from '../types';
 
 interface AddVehicleModalProps {
@@ -60,6 +61,7 @@ const BLANK = {
 
 export function AddVehicleModal({ open, onClose, onSuccess, initialData }: AddVehicleModalProps) {
     const isEdit = !!initialData;
+    const { activeWorkspaceId } = useWorkspace();
 
     const [form, setForm] = useState(BLANK);
     const [submitting, setSubmitting] = useState(false);
@@ -109,6 +111,7 @@ export function AddVehicleModal({ open, onClose, onSuccess, initialData }: AddVe
         if (!form.plate.trim()) { setError('Plate number is required.'); return; }
         if (!resolvedMake) { setError('Please specify a vehicle make.'); return; }
         if (!form.model.trim()) { setError('Model is required.'); return; }
+        if (!isEdit && !activeWorkspaceId) { setError('No active workspace selected.'); return; }
 
         setSubmitting(true);
         const payload = {
@@ -123,7 +126,7 @@ export function AddVehicleModal({ open, onClose, onSuccess, initialData }: AddVe
 
         const { error: supaErr } = isEdit
             ? await supabase.from('vehicles').update(payload).eq('id', initialData!.id)
-            : await supabase.from('vehicles').insert(payload);
+            : await supabase.from('vehicles').insert({ ...payload, workspace_id: activeWorkspaceId });
         setSubmitting(false);
 
         if (supaErr) { setError(supaErr.message); }

@@ -51,6 +51,7 @@ export interface Vehicle {
 
 export interface Driver {
     id: string;
+    workspace_id: string;
     name: string;
     phone?: string;
     license_number?: string;
@@ -71,6 +72,7 @@ export type CashingDayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=Sun … 6=Sat
 
 export interface CashingSchedule {
     id: string;
+    workspace_id: string;
     vehicle_id: string;
     vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model'>;
     income_source: IncomeSource;
@@ -90,6 +92,7 @@ export type CashingStatus = 'pending' | 'recorded' | 'late_driver' | 'late_admin
 
 export interface ExpectedCashing {
     id: string;
+    workspace_id: string;
     vehicle_id: string;
     vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model'>;
     schedule_id?: string;
