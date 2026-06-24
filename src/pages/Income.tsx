@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader';
 import { useIncome } from '../hooks/useIncome';
 import { useVehicles } from '../hooks/useVehicles';
 import { useDrivers } from '../hooks/useDrivers';
+import { useCashingSchedules } from '../hooks/useCashingSchedules';
 import { AddIncomeModal } from '../components/AddIncomeModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
@@ -30,6 +31,7 @@ export function Income() {
     const { canEditApp } = useWorkspace();
     const { vehicles } = useVehicles();
     const { drivers } = useDrivers(true);  // active only
+    const { schedules } = useCashingSchedules();  // active, for source auto-fill
     const { records, loading, error, totalToday, totalThisWeek, totalThisMonth, refetch } =
         useIncome(vehicleFilter || undefined);
     const [searchQuery, setSearchQuery] = useState('');
@@ -198,6 +200,7 @@ export function Income() {
                 onSuccess={refetch}
                 vehicles={vehicles}
                 drivers={drivers}
+                schedules={schedules}
                 initialData={editing ?? undefined}
             />
         </div>

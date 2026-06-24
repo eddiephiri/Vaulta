@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useWorkspace } from '../contexts/WorkspaceContext';
-import type { Vehicle, IncomeSource, Driver, IncomeRecord } from '../types';
+import type { Vehicle, IncomeSource, Driver, IncomeRecord, CashingSchedule } from '../types';
 
 interface AddIncomeModalProps {
     open: boolean;
@@ -11,6 +11,8 @@ interface AddIncomeModalProps {
     onSuccess: () => void;
     vehicles: Vehicle[];
     drivers?: Driver[];
+    /** Active cashing schedules — used to auto-fill the source from the selected vehicle */
+    schedules?: CashingSchedule[];
     /** Pre-fill from an overdue expected_cashing row */
     prefill?: {
         vehicle_id: string;
@@ -49,7 +51,7 @@ const LABEL_STYLE = {
     marginBottom: 4,
 } as const;
 
-export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [], prefill, initialData }: AddIncomeModalProps) {
+export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [], schedules = [], prefill, initialData }: AddIncomeModalProps) {
     const { activeWorkspaceId } = useWorkspace();
     const isEdit = !!initialData;
     const today = new Date().toISOString().slice(0, 10);
@@ -100,6 +102,21 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
         setError(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, vehicles, prefill, initialData]);
+
+    // When a vehicle is selected, pre-fill the related driver and source from
+    // that vehicle's active assignment/schedule. Values stay editable. Skipped
+    // in edit mode so existing records aren't clobbered.
+    useEffect(() => {
+        if (!open || isEdit || !form.vehicle_id) return;
+        const assignedDriver = drivers.find(d => d.vehicle_id === form.vehicle_id && d.active);
+        const schedule = schedules.find(s => s.vehicle_id === form.vehicle_id);
+        setForm(prev => ({
+            ...prev,
+            driver_id: assignedDriver?.id ?? '',
+            source: schedule?.income_source ?? prev.source,
+        }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [form.vehicle_id, open, drivers, schedules]);
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };

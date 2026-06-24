@@ -243,6 +243,7 @@ export function CashingSchedules() {
                 }}
                 vehicles={vehicles}
                 drivers={drivers}
+                schedules={schedules}
                 prefill={incomePrefill ?? undefined}
             />
 
