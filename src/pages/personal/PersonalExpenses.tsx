@@ -20,6 +20,7 @@ const CATEGORIES: { value: PersonalExpenseCategory; label: string; color: string
     { value: 'education', label: 'Education', color: '#6366f1' },
     { value: 'gifts', label: 'Gifts & Donations', color: '#f97316' },
     { value: 'subscriptions', label: 'Subscriptions', color: '#06b6d4' },
+    { value: 'property', label: 'Property Payments', color: '#0d9488' },
     { value: 'other', label: 'Other', color: '#6b7280' },
 ];
 

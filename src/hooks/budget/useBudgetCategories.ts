@@ -11,6 +11,7 @@ interface UseBudgetCategoriesReturn {
     error: string | null;
     addCategory: (data: Omit<BudgetCategory, 'id' | 'workspace_id' | 'created_at'>) => Promise<void>;
     updateCategory: (id: string, data: Partial<BudgetCategory>) => Promise<void>;
+    deleteCategory: (id: string) => Promise<void>;
     refetch: () => void;
 }
 
@@ -60,6 +61,15 @@ export function useBudgetCategories(typeFilter?: BudgetCategoryType): UseBudgetC
         await fetchCategories();
     };
 
+    const deleteCategory = async (id: string) => {
+        const { error } = await supabase
+            .from('budget_categories')
+            .delete()
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        await fetchCategories();
+    };
+
     return {
         categories,
         incomeCategories: categories.filter(c => c.type === 'income'),
@@ -68,6 +78,7 @@ export function useBudgetCategories(typeFilter?: BudgetCategoryType): UseBudgetC
         error,
         addCategory,
         updateCategory,
+        deleteCategory,
         refetch: fetchCategories,
     };
 }

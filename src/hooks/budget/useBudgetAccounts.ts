@@ -9,6 +9,7 @@ interface UseBudgetAccountsReturn {
     error: string | null;
     addAccount: (data: Omit<BudgetAccount, 'id' | 'workspace_id' | 'created_at'>) => Promise<void>;
     updateAccount: (id: string, data: Partial<BudgetAccount>) => Promise<void>;
+    deleteAccount: (id: string) => Promise<void>;
     refetch: () => void;
 }
 
@@ -54,5 +55,14 @@ export function useBudgetAccounts(): UseBudgetAccountsReturn {
         await fetchAccounts();
     };
 
-    return { accounts, loading, error, addAccount, updateAccount, refetch: fetchAccounts };
+    const deleteAccount = async (id: string) => {
+        const { error } = await supabase
+            .from('budget_accounts')
+            .delete()
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        await fetchAccounts();
+    };
+
+    return { accounts, loading, error, addAccount, updateAccount, deleteAccount, refetch: fetchAccounts };
 }

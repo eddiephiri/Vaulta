@@ -81,6 +81,7 @@ BEGIN
         (ws_id, 'Entertainment',    'expense', '#8b5cf6'),
         (ws_id, 'Clothing',         'expense', '#ec4899'),
         (ws_id, 'Savings',          'expense', '#14b8a6'),
+        (ws_id, 'Property Payments','expense', '#0d9488'),
         (ws_id, 'Other Expense',    'expense', '#6b7280')
     ON CONFLICT DO NOTHING;
 

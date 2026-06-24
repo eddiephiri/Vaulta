@@ -305,6 +305,7 @@ export type PersonalExpenseCategory =
     | 'education'
     | 'gifts'
     | 'subscriptions'
+    | 'property'
     | 'other';
 
 export type PersonalPaymentMethod =

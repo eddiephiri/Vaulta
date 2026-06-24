@@ -25,6 +25,7 @@ import { BudgetIncome } from './pages/budget/BudgetIncome';
 import { BudgetExpenses } from './pages/budget/BudgetExpenses';
 import { BudgetReports } from './pages/budget/BudgetReports';
 import { BudgetSheets } from './pages/budget/BudgetSheets';
+import { BudgetSettings } from './pages/budget/BudgetSettings';
 import { PersonalDashboard } from './pages/personal/PersonalDashboard';
 import { PersonalExpenses } from './pages/personal/PersonalExpenses';
 import { PersonalReports } from './pages/personal/PersonalReports';
@@ -110,6 +111,7 @@ export default function App() {
                   <Route path="income" element={<BudgetIncome />} />
                   <Route path="expenses" element={<BudgetExpenses />} />
                   <Route path="reports" element={<BudgetReports />} />
+                  <Route path="settings" element={<BudgetSettings />} />
                   <Route path="wishlist" element={<Wishlist />} />
                 </Route>
 

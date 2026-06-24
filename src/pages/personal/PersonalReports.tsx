@@ -14,6 +14,7 @@ const CATEGORY_META: Record<PersonalExpenseCategory, { label: string; color: str
     education: { label: 'Education', color: '#6366f1' },
     gifts: { label: 'Gifts & Donations', color: '#f97316' },
     subscriptions: { label: 'Subscriptions', color: '#06b6d4' },
+    property: { label: 'Property Payments', color: '#0d9488' },
     other: { label: 'Other', color: '#6b7280' },
 };
 
