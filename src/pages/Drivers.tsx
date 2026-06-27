@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Plus, Users, Phone, Car, Banknote, Pencil, KeyRound } from 'lucide-react';
+import { Plus, Users, Phone, Car, Banknote, Pencil, KeyRound, ClipboardCheck } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useDrivers } from '../hooks/useDrivers';
 import { useVehicles } from '../hooks/useVehicles';
+import { useDriverReviewFlags } from '../hooks/useDriverReviewFlags';
 import { AddDriverModal } from '../components/AddDriverModal';
 import { ProvisionDriverModal } from '../components/ProvisionDriverModal';
+import { DriverReviewModal } from '../components/DriverReviewModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
@@ -15,10 +17,12 @@ export function Drivers() {
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState<Driver | null>(null);
     const [provisioning, setProvisioning] = useState<Driver | null>(null);
+    const [reviewing, setReviewing] = useState<Driver | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const { canEditApp } = useWorkspace();
     const { drivers, loading, error, refetch } = useDrivers();
     const { vehicles } = useVehicles();
+    const { flagged, refetch: refetchFlags } = useDriverReviewFlags();
 
     const filteredDrivers = drivers.filter((d) => {
         if (!searchQuery) return true;
@@ -116,6 +120,20 @@ export function Drivers() {
                                             >
                                                 {driver.active ? 'Active' : 'Inactive'}
                                             </span>
+                                            {canEditApp('transport') && driver.user_id && (
+                                                <button
+                                                    onClick={() => setReviewing(driver)}
+                                                    title="Review documents & edits"
+                                                    style={{ position: 'relative', background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                                >
+                                                    <ClipboardCheck size={16} />
+                                                    {flagged.has(driver.id) && (
+                                                        <span style={{ position: 'absolute', top: 2, right: 2, width: 7, height: 7, borderRadius: '50%', background: '#f59e0b' }} />
+                                                    )}
+                                                </button>
+                                            )}
                                             {canEditApp('transport') && (
                                                 driver.user_id ? (
                                                     <span title="Has app login" style={{ display: 'inline-flex', alignItems: 'center', padding: 4, color: '#22c55e' }}>
@@ -208,6 +226,13 @@ export function Drivers() {
                 onClose={() => setProvisioning(null)}
                 onSuccess={refetch}
                 driver={provisioning}
+            />
+
+            <DriverReviewModal
+                open={!!reviewing}
+                onClose={() => setReviewing(null)}
+                onChange={() => { refetchFlags(); refetch(); }}
+                driver={reviewing}
             />
         </div>
     );

@@ -87,6 +87,21 @@ export interface DriverDocument {
     created_at: string;
 }
 
+export interface DriverProfileEdit {
+    id: string;
+    driver_id: string;
+    workspace_id: string;
+    changed_by?: string | null;
+    field: string;
+    old_value?: string | null;
+    new_value?: string | null;
+    reverted: boolean;
+    reviewed: boolean;
+    reviewed_by?: string | null;
+    reviewed_at?: string | null;
+    created_at: string;
+}
+
 // ─── Cashing Schedules ───────────────────────────────────────────────────────
 
 export type IncomeSource = 'yango' | 'public_transport' | 'rental' | 'other';
