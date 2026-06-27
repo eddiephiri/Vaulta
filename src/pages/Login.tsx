@@ -183,9 +183,10 @@ export function Login() {
                             <Link to="#" className="text-[14px] font-semibold text-[#2563eb] hover:text-blue-700 transition-colors">
                                 Request Access
                             </Link>
-                            <div className="mt-3">
-                                <Link to="/driver" className="text-[13px] font-medium text-slate-500 hover:text-slate-700 transition-colors">
-                                    Are you a driver? Sign in here
+                            <div className="mt-3 text-[13px]">
+                                <span className="text-slate-500">Are you a driver? </span>
+                                <Link to="/driver" className="font-semibold text-[#2563eb] hover:text-blue-700 transition-colors">
+                                    Sign in here
                                 </Link>
                             </div>
                         </div>
