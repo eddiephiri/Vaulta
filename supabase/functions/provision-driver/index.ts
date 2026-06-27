@@ -26,6 +26,15 @@ function normalizePhone(raw: string): string {
   return p
 }
 
+// Drivers authenticate with phone+password, but Supabase's phone provider
+// requires a paid SMS provider. We avoid that by mapping the phone to a
+// deterministic synthetic email and using email+password auth under the hood.
+// This MUST stay identical to phoneToDriverEmail() in src/lib/driverAuth.ts.
+const DRIVER_EMAIL_DOMAIN = 'drivers.vaulta.app'
+function phoneToDriverEmail(e164Phone: string): string {
+  return `${e164Phone.replace(/\D/g, '')}@${DRIVER_EMAIL_DOMAIN}`
+}
+
 // Strong temporary password the admin hands to the driver (shown once).
 function generateTempPassword(): string {
   const sets = [
@@ -95,23 +104,26 @@ serve(async (req: Request) => {
       throw new Error('Only owners and admins can set up driver logins.')
     }
 
-    // 4. Create the phone+password auth user (auto-confirmed; no SMS).
+    // 4. Create the auth user (auto-confirmed; no SMS). The driver signs in with
+    //    their phone, which we map to a synthetic email + password under the hood.
     const normalized = normalizePhone(phone)
+    const email = phoneToDriverEmail(normalized)
     const tempPassword = generateTempPassword()
 
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      phone: normalized,
+      email,
       password: tempPassword,
-      phone_confirm: true,
+      email_confirm: true,
       user_metadata: {
         role: 'driver',
         driver_id: driver.id,
+        phone: normalized,
         must_change_password: true,
       },
     })
 
     if (createErr) {
-      // Most common: phone already registered.
+      // Most common: this phone (synthetic email) is already registered.
       throw new Error(createErr.message.includes('already')
         ? `Phone ${normalized} is already registered to another account.`
         : createErr.message)
