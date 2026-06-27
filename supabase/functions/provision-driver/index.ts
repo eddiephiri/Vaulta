@@ -114,9 +114,13 @@ serve(async (req: Request) => {
       email,
       password: tempPassword,
       email_confirm: true,
-      user_metadata: {
+      // Authorization claims go in app_metadata (service-role-only, not editable
+      // by the driver). user_metadata holds only benign, self-editable fields.
+      app_metadata: {
         role: 'driver',
         driver_id: driver.id,
+      },
+      user_metadata: {
         phone: normalized,
         must_change_password: true,
       },

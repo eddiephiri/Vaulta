@@ -32,6 +32,12 @@ import { PersonalReports } from './pages/personal/PersonalReports';
 import { PersonalSubscriptions } from './pages/personal/PersonalSubscriptions';
 import { Wishlist } from './pages/Wishlist';
 import { JoinWorkspace } from './pages/JoinWorkspace';
+import { DriverProvider } from './contexts/DriverContext';
+import { DriverLayout } from './components/DriverLayout';
+import { DriverLogin } from './pages/driver/DriverLogin';
+import { DriverHome } from './pages/driver/DriverHome';
+import { DriverProfile } from './pages/driver/DriverProfile';
+import { DriverChangePassword } from './pages/driver/DriverChangePassword';
 
 function AuthEventHandler() {
   const { authEvent } = useAuth();
@@ -51,6 +57,12 @@ export default function App() {
 
   // Enforce single session and idle timeout (15 mins)
   useSessionSecurity(session);
+
+  // Drivers are a distinct, phone-first audience routed into their own portal.
+  // role lives in app_metadata (service-role-only); RLS is the real gate, this
+  // only drives UX routing. must_change_password is a benign self-editable flag.
+  const isDriver = session?.user?.app_metadata?.role === 'driver';
+  const mustChangePassword = session?.user?.user_metadata?.must_change_password === true;
 
   // While checking session, show a minimal loader so there's no flash
   if (loading) {
@@ -74,9 +86,26 @@ export default function App() {
         <Routes>
           {!session ? (
             <>
+              <Route path="/driver/*" element={<DriverLogin />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="*" element={<Login />} />
             </>
+          ) : isDriver ? (
+            mustChangePassword ? (
+              <Route path="*" element={<DriverChangePassword onDone={() => { /* session refresh clears the flag */ }} />} />
+            ) : (
+              <Route element={
+                <DriverProvider>
+                  <Outlet />
+                </DriverProvider>
+              }>
+                <Route path="driver" element={<DriverLayout />}>
+                  <Route index element={<DriverHome />} />
+                  <Route path="profile" element={<DriverProfile />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/driver" replace />} />
+              </Route>
+            )
           ) : (
             <>
               <Route path="/reset-password" element={<ResetPassword />} />
