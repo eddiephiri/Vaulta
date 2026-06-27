@@ -34,3 +34,16 @@ export function phoneToDriverEmail(phone: string): string {
     const e164 = normalizeDriverPhone(phone);
     return `${e164.replace(/\D/g, '')}@${DRIVER_EMAIL_DOMAIN}`;
 }
+
+// The installed PWA always opens at "/", which renders the admin login. Once a
+// driver signs in on a device we remember it, so subsequent opens (and idle
+// logouts) route to the driver login instead.
+const DRIVER_DEVICE_KEY = 'vaulta_driver_device';
+
+export function markDriverDevice(): void {
+    try { localStorage.setItem(DRIVER_DEVICE_KEY, 'true'); } catch { /* ignore */ }
+}
+
+export function isDriverDevice(): boolean {
+    try { return localStorage.getItem(DRIVER_DEVICE_KEY) === 'true'; } catch { return false; }
+}

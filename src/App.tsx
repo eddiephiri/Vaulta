@@ -38,6 +38,7 @@ import { DriverLogin } from './pages/driver/DriverLogin';
 import { DriverHome } from './pages/driver/DriverHome';
 import { DriverProfile } from './pages/driver/DriverProfile';
 import { DriverChangePassword } from './pages/driver/DriverChangePassword';
+import { markDriverDevice, isDriverDevice } from './lib/driverAuth';
 
 function AuthEventHandler() {
   const { authEvent } = useAuth();
@@ -64,6 +65,10 @@ export default function App() {
   const isDriver = session?.user?.app_metadata?.role === 'driver';
   const mustChangePassword = session?.user?.user_metadata?.must_change_password === true;
 
+  // Remember driver devices so the installed PWA (which opens at "/") routes
+  // them to the driver login instead of the admin one.
+  useEffect(() => { if (isDriver) markDriverDevice(); }, [isDriver]);
+
   // While checking session, show a minimal loader so there's no flash
   if (loading) {
     return (
@@ -88,6 +93,8 @@ export default function App() {
             <>
               <Route path="/driver/*" element={<DriverLogin />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* The PWA opens at "/": send remembered driver devices to their login. */}
+              <Route path="/" element={isDriverDevice() ? <Navigate to="/driver" replace /> : <Login />} />
               <Route path="*" element={<Login />} />
             </>
           ) : isDriver ? (

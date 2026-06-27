@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { Truck, Loader2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { phoneToDriverEmail } from '../../lib/driverAuth';
@@ -108,6 +109,11 @@ export function DriverLogin() {
 
                 <p className="mt-6 text-center text-xs" style={{ color: 'var(--ff-text-muted)' }}>
                     Trouble signing in? Contact your manager.
+                </p>
+                <p className="mt-3 text-center">
+                    <Link to="/login" className="text-xs font-medium" style={{ color: 'var(--ff-text-muted)' }}>
+                        Manager sign-in
+                    </Link>
                 </p>
             </div>
         </div>
