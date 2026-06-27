@@ -67,6 +67,26 @@ export interface Driver {
     created_at: string;
 }
 
+// ─── Driver Documents ────────────────────────────────────────────────────────
+
+export type DriverDocumentType = 'license' | 'nrc' | 'photo' | 'police_clearance';
+export type DriverDocumentStatus = 'pending' | 'verified' | 'rejected';
+
+export interface DriverDocument {
+    id: string;
+    driver_id: string;
+    workspace_id: string;
+    doc_type: DriverDocumentType;
+    storage_path: string;
+    status: DriverDocumentStatus;
+    uploaded_by?: string | null;
+    verified_by?: string | null;
+    verified_at?: string | null;
+    superseded: boolean;
+    notes?: string | null;
+    created_at: string;
+}
+
 // ─── Cashing Schedules ───────────────────────────────────────────────────────
 
 export type IncomeSource = 'yango' | 'public_transport' | 'rental' | 'other';
