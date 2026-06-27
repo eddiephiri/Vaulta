@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Plus, Users, Phone, Car, Banknote, Pencil } from 'lucide-react';
+import { Plus, Users, Phone, Car, Banknote, Pencil, KeyRound } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useDrivers } from '../hooks/useDrivers';
 import { useVehicles } from '../hooks/useVehicles';
 import { AddDriverModal } from '../components/AddDriverModal';
+import { ProvisionDriverModal } from '../components/ProvisionDriverModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
@@ -13,6 +14,7 @@ import type { Driver } from '../types';
 export function Drivers() {
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState<Driver | null>(null);
+    const [provisioning, setProvisioning] = useState<Driver | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const { canEditApp } = useWorkspace();
     const { drivers, loading, error, refetch } = useDrivers();
@@ -115,6 +117,23 @@ export function Drivers() {
                                                 {driver.active ? 'Active' : 'Inactive'}
                                             </span>
                                             {canEditApp('transport') && (
+                                                driver.user_id ? (
+                                                    <span title="Has app login" style={{ display: 'inline-flex', alignItems: 'center', padding: 4, color: '#22c55e' }}>
+                                                        <KeyRound size={15} />
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => setProvisioning(driver)}
+                                                        title="Set up app access"
+                                                        style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                                    >
+                                                        <KeyRound size={16} />
+                                                    </button>
+                                                )
+                                            )}
+                                            {canEditApp('transport') && (
                                                 <button
                                                     onClick={() => openEdit(driver)}
                                                     title="Edit driver"
@@ -182,6 +201,13 @@ export function Drivers() {
                 onSuccess={refetch}
                 vehicles={vehicles}
                 initialData={editing ?? undefined}
+            />
+
+            <ProvisionDriverModal
+                open={!!provisioning}
+                onClose={() => setProvisioning(null)}
+                onSuccess={refetch}
+                driver={provisioning}
             />
         </div>
     );
