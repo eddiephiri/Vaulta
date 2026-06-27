@@ -52,9 +52,12 @@ export interface Vehicle {
 export interface Driver {
     id: string;
     workspace_id: string;
+    /** auth.users id once the driver has been provisioned a login (Phase 2) */
+    user_id?: string | null;
     name: string;
     phone?: string;
     license_number?: string;
+    nrc_number?: string;
     vehicle_id?: string;
     vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model'>;
     salary_zmw: number;
