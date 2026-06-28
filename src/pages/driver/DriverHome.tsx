@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { CalendarClock, Banknote, CheckCircle2, Clock } from 'lucide-react';
 import { useDriver } from '../../contexts/DriverContext';
 import { useDriverCashings } from '../../hooks/useDriverCashings';
+import { EnableNotificationsButton } from '../../components/EnableNotificationsButton';
 import type { CashingStatus } from '../../types';
 
 const STATUS_META: Record<CashingStatus, { label: string; color: string }> = {
@@ -71,6 +72,8 @@ export function DriverHome() {
             {error && (
                 <div className="p-3 rounded-lg text-sm" style={{ background: '#ef444420', color: '#ef4444' }}>{error}</div>
             )}
+
+            <EnableNotificationsButton />
 
             {/* This week */}
             {loading ? (
