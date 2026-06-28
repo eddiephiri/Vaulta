@@ -22,13 +22,13 @@ CREATE EXTENSION IF NOT EXISTS pg_net;
 --    Re-running create_secret with the same name errors — that's fine, skip it.
 SELECT vault.create_secret('<SERVICE_ROLE_KEY>', 'reminder_service_role_key');
 
--- 4. (Re)schedule the daily job. 04:00 UTC = 06:00 in Zambia (UTC+2),
+-- 4. (Re)schedule the daily job. 08:00 UTC = 10:00 at +0200 (Harare/Pretoria),
 --    i.e. the morning before a cashing that's due "tomorrow".
 DO $$ BEGIN PERFORM cron.unschedule('send-reminders-daily'); EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 SELECT cron.schedule(
   'send-reminders-daily',
-  '0 4 * * *',
+  '0 8 * * *',
   $$
   SELECT net.http_post(
     url := 'https://yixttmmusjjamuerscja.supabase.co/functions/v1/send-reminders',
