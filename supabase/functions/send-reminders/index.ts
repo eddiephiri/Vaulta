@@ -80,6 +80,7 @@ serve(async (req: Request) => {
     const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey)
 
     // Due tomorrow (UTC), still pending, not yet reminded.
+    const today = new Date().toISOString().slice(0, 10)
     const d = new Date(); d.setUTCDate(d.getUTCDate() + 1)
     const tomorrow = d.toISOString().slice(0, 10)
 
@@ -103,67 +104,120 @@ serve(async (req: Request) => {
       }
     }
 
-    if (recipients.length === 0) {
-      return new Response(JSON.stringify({ processed: 0, sent: 0 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-
-    // Tokens for the recipient users.
+    // Tokens for the recipient users (admin nudges below run even if this is empty).
     const userIds = [...new Set(recipients.map(r => r.userId))]
-    const { data: tokenRows } = await supabase.from('push_tokens').select('user_id, token').in('user_id', userIds)
     const tokensByUser = new Map<string, string[]>()
-    for (const t of tokenRows ?? []) {
-      const list = tokensByUser.get(t.user_id) ?? []
-      list.push(t.token); tokensByUser.set(t.user_id, list)
+    if (userIds.length > 0) {
+      const { data: tokenRows } = await supabase.from('push_tokens').select('user_id, token').in('user_id', userIds)
+      for (const t of tokenRows ?? []) {
+        const list = tokensByUser.get(t.user_id) ?? []
+        list.push(t.token); tokensByUser.set(t.user_id, list)
+      }
     }
 
     const accessToken = await getAccessToken(sa)
     const fmtDate = (s: string) => new Date(s + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 
-    const sentCashingIds = new Set<string>()
     const invalidTokens = new Set<string>()
-    let sent = 0
 
+    // Send to one device token; returns true on success, flags dead tokens.
+    const pushTo = async (token: string, title: string, body: string, data: Record<string, string>): Promise<boolean> => {
+      const res = await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: { token, notification: { title, body }, data } }),
+      })
+      if (res.ok) return true
+      const errBody = await res.text()
+      if (res.status === 404 || /UNREGISTERED|registration-token-not-registered|InvalidRegistration/i.test(errBody)) {
+        invalidTokens.add(token)
+      }
+      console.warn(`FCM send failed (${res.status}): ${errBody}`)
+      return false
+    }
+
+    // ── Driver cashing reminders ────────────────────────────────────────────
+    const sentCashingIds = new Set<string>()
+    let driverSent = 0
     for (const r of recipients) {
       const tokens = tokensByUser.get(r.userId) ?? []
       if (tokens.length === 0) continue
       const title = r.isSalary ? 'Salary week — cashing tomorrow' : 'Cashing reminder'
       const body = `Tomorrow (${fmtDate(r.date)}) is your ${r.isSalary ? 'salary ' : ''}cashing for ${r.plate}.`
-
       for (const token of tokens) {
-        const res = await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: {
-              token,
-              notification: { title, body },
-              data: { type: 'cashing_reminder', cashing_id: r.cashingId, url: '/driver' },
-            },
-          }),
-        })
-        if (res.ok) { sent++; sentCashingIds.add(r.cashingId) }
-        else {
-          const errBody = await res.text()
-          // Stale/unregistered tokens → drop them so we stop trying.
-          if (res.status === 404 || /UNREGISTERED|registration-token-not-registered|InvalidRegistration/i.test(errBody)) {
-            invalidTokens.add(token)
-          }
-          console.warn(`FCM send failed (${res.status}) for cashing ${r.cashingId}: ${errBody}`)
+        if (await pushTo(token, title, body, { type: 'cashing_reminder', cashing_id: r.cashingId, url: '/driver' })) {
+          driverSent++; sentCashingIds.add(r.cashingId)
         }
       }
     }
-
     if (sentCashingIds.size > 0) {
       await supabase.from('expected_cashings')
         .update({ reminder_sent_at: new Date().toISOString() })
         .in('id', [...sentCashingIds])
     }
+
+    // ── Admin nudges: a daily digest of items needing attention ─────────────
+    // Overdue cashings (pending, in the last 30 days), pending document
+    // reviews, and unreviewed profile edits — counted per workspace.
+    const ago = new Date(); ago.setUTCDate(ago.getUTCDate() - 30)
+    const thirtyAgo = ago.toISOString().slice(0, 10)
+
+    type Counts = { overdue: number; docs: number; edits: number }
+    const counts = new Map<string, Counts>()
+    const bump = (ws: string, key: keyof Counts) => {
+      const c = counts.get(ws) ?? { overdue: 0, docs: 0, edits: 0 }
+      c[key]++; counts.set(ws, c)
+    }
+
+    const [overdueRes, docsRes, editsRes] = await Promise.all([
+      supabase.from('expected_cashings').select('workspace_id').eq('status', 'pending').gte('expected_date', thirtyAgo).lt('expected_date', today),
+      supabase.from('driver_documents').select('workspace_id').eq('status', 'pending').eq('superseded', false),
+      supabase.from('driver_profile_edits').select('workspace_id').eq('reviewed', false).eq('reverted', false),
+    ])
+    overdueRes.data?.forEach((r: any) => r.workspace_id && bump(r.workspace_id, 'overdue'))
+    docsRes.data?.forEach((r: any) => r.workspace_id && bump(r.workspace_id, 'docs'))
+    editsRes.data?.forEach((r: any) => r.workspace_id && bump(r.workspace_id, 'edits'))
+
+    let adminSent = 0
+    const flaggedWs = [...counts.keys()]
+    if (flaggedWs.length > 0) {
+      const { data: admins } = await supabase
+        .from('workspace_users').select('workspace_id, user_id')
+        .in('workspace_id', flaggedWs).in('role', ['owner', 'admin'])
+
+      const adminIds = [...new Set((admins ?? []).map((a: any) => a.user_id))]
+      const { data: adminTokenRows } = await supabase.from('push_tokens').select('user_id, token').in('user_id', adminIds)
+      const adminTokensByUser = new Map<string, string[]>()
+      for (const t of adminTokenRows ?? []) {
+        const list = adminTokensByUser.get(t.user_id) ?? []; list.push(t.token); adminTokensByUser.set(t.user_id, list)
+      }
+
+      const s = (n: number) => (n === 1 ? '' : 's')
+      for (const [ws, c] of counts) {
+        const parts: string[] = []
+        if (c.overdue) parts.push(`${c.overdue} overdue cashing${s(c.overdue)}`)
+        if (c.docs) parts.push(`${c.docs} document${s(c.docs)} to review`)
+        if (c.edits) parts.push(`${c.edits} profile edit${s(c.edits)} to review`)
+        if (parts.length === 0) continue
+        const body = parts.join(', ')
+        for (const a of (admins ?? []).filter((a: any) => a.workspace_id === ws)) {
+          for (const token of (adminTokensByUser.get(a.user_id) ?? [])) {
+            if (await pushTo(token, 'Items need your attention', body, { type: 'admin_digest', url: '/transport/drivers' })) adminSent++
+          }
+        }
+      }
+    }
+
     if (invalidTokens.size > 0) {
       await supabase.from('push_tokens').delete().in('token', [...invalidTokens])
     }
 
     return new Response(
-      JSON.stringify({ processed: recipients.length, sent, invalid_tokens_removed: invalidTokens.size }),
+      JSON.stringify({
+        driver_reminders: { processed: recipients.length, sent: driverSent },
+        admin_nudges: { workspaces: flaggedWs.length, sent: adminSent },
+        invalid_tokens_removed: invalidTokens.size,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error: any) {
