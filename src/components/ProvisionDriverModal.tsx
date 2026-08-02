@@ -94,7 +94,7 @@ export function ProvisionDriverModal({ open, onClose, onSuccess, driver }: Provi
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                     <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ff-text-primary)' }}>
-                        {result ? 'Login Created' : `Set Up App Access`}
+                        {result ? (driver.user_id ? 'Password Reset' : 'Login Created') : (driver.user_id ? 'Reset Driver Password' : 'Set Up App Access')}
                     </h2>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--ff-text-muted)', padding: 4 }}>
                         <X size={20} />
@@ -107,10 +107,16 @@ export function ProvisionDriverModal({ open, onClose, onSuccess, driver }: Provi
                             style={{ background: '#22c55e15', color: '#22c55e' }}>
                             <KeyRound size={28} />
                         </div>
-                        <p className="text-sm text-center mb-4" style={{ color: 'var(--ff-text-muted)' }}>
-                            Share these credentials with <strong>{driver.name}</strong>. They sign in with their
-                            phone number and will be asked to change the password.
-                        </p>
+                        {driver.user_id ? (
+                            <p className="text-sm text-center mb-4" style={{ color: 'var(--ff-text-muted)' }}>
+                                The password for <strong>{driver.name}</strong> has been reset. Share these credentials with them. They will sign in with their phone number and must change this password immediately.
+                            </p>
+                        ) : (
+                            <p className="text-sm text-center mb-4" style={{ color: 'var(--ff-text-muted)' }}>
+                                Share these credentials with <strong>{driver.name}</strong>. They sign in with their
+                                phone number and will be asked to change the password.
+                            </p>
+                        )}
 
                         {([
                             { label: 'Phone', field: 'phone' as const, value: result.phone, mono: false },
@@ -146,10 +152,16 @@ export function ProvisionDriverModal({ open, onClose, onSuccess, driver }: Provi
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        <p className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
-                            Create a phone-based login for <strong>{driver.name}</strong> so they can view their
-                            cashing schedule and manage their profile.
-                        </p>
+                        {driver.user_id ? (
+                            <p className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
+                                Reset the app login password for <strong>{driver.name}</strong>. A new temporary password will be generated.
+                            </p>
+                        ) : (
+                            <p className="text-sm" style={{ color: 'var(--ff-text-muted)' }}>
+                                Create a phone-based login for <strong>{driver.name}</strong> so they can view their
+                                cashing schedule and manage their profile.
+                            </p>
+                        )}
 
                         {error && (
                             <div style={{ padding: '10px 14px', borderRadius: 8, background: '#ef444420', color: '#ef4444', border: '1px solid #ef444440', fontSize: 13 }}>
@@ -175,7 +187,7 @@ export function ProvisionDriverModal({ open, onClose, onSuccess, driver }: Provi
                                 flex: 1.5, padding: '10px 0', borderRadius: 8, fontSize: 14, fontWeight: 600,
                                 background: loading ? '#334155' : 'var(--ff-accent)', color: 'white', border: 'none',
                             }}>
-                                {loading ? 'Creating…' : 'Create Login'}
+                                {loading ? 'Processing…' : driver.user_id ? 'Reset Password' : 'Create Login'}
                             </button>
                         </div>
                     </form>

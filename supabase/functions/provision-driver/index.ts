@@ -90,7 +90,6 @@ serve(async (req: Request) => {
       .single()
 
     if (driverErr || !driver) throw new Error('Driver not found.')
-    if (driver.user_id) throw new Error('This driver already has an app login.')
 
     // 3. Verify the caller is an owner/admin of the driver's workspace.
     const { data: membership } = await supabaseAdmin
@@ -104,11 +103,36 @@ serve(async (req: Request) => {
       throw new Error('Only owners and admins can set up driver logins.')
     }
 
-    // 4. Create the auth user (auto-confirmed; no SMS). The driver signs in with
-    //    their phone, which we map to a synthetic email + password under the hood.
     const normalized = normalizePhone(phone)
-    const email = phoneToDriverEmail(normalized)
     const tempPassword = generateTempPassword()
+
+    // 4. Handle Password Reset if driver already has an app login.
+    if (driver.user_id) {
+      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(driver.user_id, {
+        password: tempPassword,
+        user_metadata: {
+          phone: normalized,
+          must_change_password: true,
+        }
+      })
+      if (updateErr) throw updateErr
+
+      // Update phone on the driver record as well
+      const { error: updatePhoneErr } = await supabaseAdmin
+        .from('drivers')
+        .update({ phone: normalized })
+        .eq('id', driver.id)
+      if (updatePhoneErr) throw updatePhoneErr
+
+      return new Response(
+        JSON.stringify({ success: true, phone: normalized, temp_password: tempPassword, is_reset: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
+    // 5. Create the auth user (auto-confirmed; no SMS). The driver signs in with
+    //    their phone, which we map to a synthetic email + password under the hood.
+    const email = phoneToDriverEmail(normalized)
 
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -135,7 +159,7 @@ serve(async (req: Request) => {
 
     const newUser = created.user
 
-    // 5. Link the driver record to the new auth user, and store the normalized phone.
+    // 6. Link the driver record to the new auth user, and store the normalized phone.
     const { error: linkErr } = await supabaseAdmin
       .from('drivers')
       .update({ user_id: newUser.id, phone: normalized })

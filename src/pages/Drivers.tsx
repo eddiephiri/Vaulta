@@ -143,9 +143,15 @@ export function Drivers() {
                                             )}
                                             {canEditApp('transport') && (
                                                 driver.user_id ? (
-                                                    <span title="Has app login" style={{ display: 'inline-flex', alignItems: 'center', padding: 4, color: '#22c55e' }}>
-                                                        <KeyRound size={15} />
-                                                    </span>
+                                                    <button
+                                                        onClick={() => setProvisioning(driver)}
+                                                        title="Reset driver password"
+                                                        style={{ background: 'none', border: 'none', padding: 4, color: '#22c55e', borderRadius: 6 }}
+                                                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                                        onMouseLeave={e => (e.currentTarget.style.color = '#22c55e')}
+                                                    >
+                                                        <KeyRound size={16} />
+                                                    </button>
                                                 ) : (
                                                     <button
                                                         onClick={() => setProvisioning(driver)}

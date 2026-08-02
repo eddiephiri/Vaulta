@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, CalendarClock, RefreshCw, ArrowLeftRight, Banknote } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/PageHeader';
 import { useCashingSchedules } from '../hooks/useCashingSchedules';
 import { useExpectedCashings } from '../hooks/useExpectedCashings';
@@ -64,6 +65,33 @@ export function CashingSchedules() {
         is_salary_week: boolean;
     } | null>(null);
 
+    const [clearingOverdue, setClearingOverdue] = useState(false);
+
+    const handleClearOverdue = async () => {
+        if (!window.confirm('Are you sure you want to dismiss and clear all current overdue cashing reminders? This will delete the pending schedule reminders before today but will NOT remove any recorded income/salary data.')) {
+            return;
+        }
+
+        setClearingOverdue(true);
+        const today = new Date().toISOString().slice(0, 10);
+
+        const { error } = await supabase
+            .from('expected_cashings')
+            .delete()
+            .eq('status', 'pending')
+            .lte('expected_date', today)
+            .eq('is_salary_week', false);
+
+        setClearingOverdue(false);
+
+        if (error) {
+            alert('Failed to clear overdue reminders: ' + error.message);
+        } else {
+            refetch();
+            refetchOverdue();
+        }
+    };
+
     const filteredSchedules = schedules.filter(s => {
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
@@ -96,9 +124,25 @@ export function CashingSchedules() {
             {!overdueLoading && overdue.length > 0 && (
                 <div className="mb-6 p-4 rounded-xl"
                     style={{ background: '#f59e0b15', border: '1px solid #f59e0b40' }}>
-                    <p className="text-sm font-semibold mb-2" style={{ color: '#f59e0b' }}>
-                        ⚠ {overdue.length} overdue cashing{overdue.length > 1 ? 's' : ''}
-                    </p>
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold text-amber-500" style={{ color: '#f59e0b' }}>
+                            ⚠ {overdue.length} overdue cashing{overdue.length > 1 ? 's' : ''}
+                        </p>
+                        {canEditApp('transport') && (
+                            <button
+                                onClick={handleClearOverdue}
+                                disabled={clearingOverdue}
+                                className="text-xs px-3 py-1 rounded font-semibold transition-colors border cursor-pointer"
+                                style={{
+                                    borderColor: '#f59e0b50',
+                                    color: '#f59e0b',
+                                    background: 'transparent'
+                                }}
+                            >
+                                {clearingOverdue ? 'Clearing…' : 'Clear All Reminders'}
+                            </button>
+                        )}
+                    </div>
                     <div className="space-y-2 mt-3">
                         {overdue.map(c => (
                             <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg"
