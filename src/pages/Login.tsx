@@ -122,9 +122,6 @@ export function Login() {
                                     onChange={e => setEmail(e.target.value)}
                                     placeholder="alex@vaulta.io"
                                     className="h-12 w-full rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 text-[15px] text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:border-[#2563eb]"
-                                    style={{ '--tw-ring-color': 'rgba(37,99,235,0.1)' } as React.CSSProperties}
-                                    onFocus={(e) => e.target.style.boxShadow = '0 0 0 4px rgba(37,99,235,0.1)'}
-                                    onBlur={(e) => e.target.style.boxShadow = 'none'}
                                 />
                             </div>
 
@@ -144,9 +141,6 @@ export function Login() {
                                     onChange={e => setPassword(e.target.value)}
                                     placeholder="••••••••"
                                     className="h-12 w-full rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 text-[15px] text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:border-[#2563eb]"
-                                    style={{ '--tw-ring-color': 'rgba(37,99,235,0.1)' } as React.CSSProperties}
-                                    onFocus={(e) => e.target.style.boxShadow = '0 0 0 4px rgba(37,99,235,0.1)'}
-                                    onBlur={(e) => e.target.style.boxShadow = 'none'}
                                 />
                             </div>
 
@@ -201,17 +195,6 @@ export function Login() {
                     <Link to="#" className="hover:text-slate-600 transition-colors">Enterprise SSO Support</Link>
                 </div>
             </div>
-            {/* Adding Google Font to doc for Manrope */}
-            <style dangerouslySetInnerHTML={{__html: `
-                @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
-                
-                input:focus {
-                    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
-                }
-                .custom-button-hover:hover {
-                    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-                }
-            `}} />
         </div>
     );
 }

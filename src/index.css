@@ -104,3 +104,11 @@ select {
 
 /* Minimum touch target for mobile (44×44px per Apple HIG) */
 .touch-target { min-height: 44px; min-width: 44px; }
+
+/* ── Login screen (moved out of Login.tsx render path) ── */
+input:focus {
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
+}
+.custom-button-hover:hover {
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
