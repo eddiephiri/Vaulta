@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { AuthProvider } from './contexts/AuthContext';
 import './index.css';
 
 // Register service worker (managed by vite-plugin-pwa)
@@ -20,6 +21,8 @@ const updateSW = registerSW({
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </React.StrictMode>
 );

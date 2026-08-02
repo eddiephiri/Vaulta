@@ -1,7 +1,8 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, User, LogOut } from 'lucide-react';
+import { Home, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDriver } from '../contexts/DriverContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const NAV = [
     { to: '/driver', label: 'Home', icon: Home, end: true },
@@ -11,6 +12,7 @@ const NAV = [
 export function DriverLayout() {
     const { signOut } = useAuth();
     const { driver } = useDriver();
+    const { theme, toggleTheme } = useTheme();
 
     return (
         <div className="min-h-screen flex flex-col" style={{ background: 'var(--ff-bg)' }}>
@@ -25,11 +27,18 @@ export function DriverLayout() {
                         </span>
                     )}
                 </div>
-                <button onClick={signOut} title="Sign out"
-                    className="flex items-center gap-1.5 text-sm px-2 py-1 rounded-lg"
-                    style={{ color: 'var(--ff-text-muted)' }}>
-                    <LogOut size={16} /> Sign out
-                </button>
+                <div className="flex items-center gap-2">
+                    <button onClick={toggleTheme} title="Toggle theme"
+                        className="p-2 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
+                        style={{ color: 'var(--ff-text-muted)', border: 'none', background: 'none' }}>
+                        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                    </button>
+                    <button onClick={signOut} title="Sign out"
+                        className="flex items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        style={{ color: 'var(--ff-text-muted)', border: 'none', background: 'none' }}>
+                        <LogOut size={16} /> Sign out
+                    </button>
+                </div>
             </header>
 
             {/* Content */}
