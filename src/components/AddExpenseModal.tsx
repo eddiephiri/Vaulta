@@ -97,6 +97,56 @@ export function AddExpenseModal({ open, onClose, onSuccess, vehicles, drivers = 
         setError(null);
     }, [open, initialData, vehicles]);
 
+    const [activeAdvance, setActiveAdvance] = useState<{ id: string; remaining_balance_zmw: number; deduction_per_week_zmw: number } | null>(null);
+    const [deductionAmount, setDeductionAmount] = useState('');
+
+    // Fetch active advance if category is salary and driver is selected
+    useEffect(() => {
+        if (!open || form.category !== 'salary' || !form.driver_id) {
+            setActiveAdvance(null);
+            setDeductionAmount('');
+            return;
+        }
+
+        let isMounted = true;
+        const fetchActiveAdvance = async () => {
+            const { data, error: err } = await supabase
+                .from('driver_advances')
+                .select('id, remaining_balance_zmw, deduction_per_week_zmw')
+                .eq('driver_id', form.driver_id)
+                .eq('status', 'active')
+                .order('created_at', { ascending: true })
+                .limit(1)
+                .maybeSingle();
+
+            if (isMounted) {
+                if (!err && data) {
+                    setActiveAdvance(data);
+                    const defaultDeduct = Math.min(Number(data.deduction_per_week_zmw), Number(data.remaining_balance_zmw));
+                    setDeductionAmount(String(defaultDeduct));
+                } else {
+                    setActiveAdvance(null);
+                    setDeductionAmount('');
+                }
+            }
+        };
+
+        fetchActiveAdvance();
+        return () => { isMounted = false; };
+    }, [open, form.category, form.driver_id]);
+
+    // Auto-fill salary from driver profile when driver is selected
+    useEffect(() => {
+        if (!open || isEdit || form.category !== 'salary' || !form.driver_id) return;
+        const selectedDriver = drivers.find(d => d.id === form.driver_id);
+        if (selectedDriver) {
+            setForm(prev => ({
+                ...prev,
+                amount_zmw: String(selectedDriver.salary_zmw)
+            }));
+        }
+    }, [open, isEdit, form.category, form.driver_id, drivers]);
+
     useEffect(() => {
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
         window.addEventListener('keydown', handler);
@@ -124,6 +174,14 @@ export function AddExpenseModal({ open, onClose, onSuccess, vehicles, drivers = 
             setError('Enter a valid amount (0.01 – 999,999.99, max 2 decimal places).'); return;
         }
 
+        const deductVal = Number(deductionAmount || 0);
+        if (activeAdvance && deductVal > 0) {
+            if (isNaN(deductVal) || deductVal < 0 || deductVal > Number(activeAdvance.remaining_balance_zmw)) {
+                setError(`Deduction amount must be between 0 and the remaining balance of ZMW ${Number(activeAdvance.remaining_balance_zmw).toFixed(2)}.`);
+                return;
+            }
+        }
+
         setSubmitting(true);
         const payload = {
             workspace_id: activeWorkspaceId,
@@ -137,16 +195,37 @@ export function AddExpenseModal({ open, onClose, onSuccess, vehicles, drivers = 
                 category: form.category,
                 driver_id: form.category === 'salary' ? (form.driver_id || null) : null,
                 notes: form.notes.trim() || null,
+                repayment_deduction_zmw: activeAdvance && deductVal > 0 ? deductVal : null
             }
         };
 
-        const { error: supaErr } = isEdit
-            ? await supabase.from('transactions').update(payload).eq('id', initialData!.id)
-            : await supabase.from('transactions').insert(payload);
-        setSubmitting(false);
+        const { data: txData, error: supaErr } = isEdit
+            ? await supabase.from('transactions').update(payload).eq('id', initialData!.id).select('id').single()
+            : await supabase.from('transactions').insert(payload).select('id').single();
 
-        if (supaErr) { setError(supaErr.message); }
-        else { onSuccess(); onClose(); }
+        if (supaErr) {
+            setError(supaErr.message);
+            setSubmitting(false);
+            return;
+        }
+
+        // Apply deduction to active advance balance
+        if (!isEdit && activeAdvance && deductVal > 0 && txData) {
+            const newBalance = Math.max(0, Number(activeAdvance.remaining_balance_zmw) - deductVal);
+            const newStatus = newBalance <= 0 ? 'repaid' : 'active';
+            
+            await supabase
+                .from('driver_advances')
+                .update({
+                    remaining_balance_zmw: newBalance,
+                    status: newStatus
+                })
+                .eq('id', activeAdvance.id);
+        }
+
+        setSubmitting(false);
+        onSuccess();
+        onClose();
     };
 
     const isFuel = form.category === 'fuel';
@@ -238,6 +317,33 @@ export function AddExpenseModal({ open, onClose, onSuccess, vehicles, drivers = 
                                 <option value="">— Select driver —</option>
                                 {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>
+                        </div>
+                    )}
+
+                    {form.category === 'salary' && activeAdvance && (
+                        <div style={{ padding: '12px 14px', borderRadius: 8, background: '#f59e0b10', border: '1px solid #f59e0b30', fontSize: 13, color: 'var(--ff-text-primary)' }}>
+                            <p style={{ fontWeight: 600, color: '#f59e0b' }}>Active Loan / Advance Detected</p>
+                            <p style={{ marginTop: 2, fontSize: 12, color: 'var(--ff-text-muted)' }}>
+                                Driver has an outstanding loan balance of <strong>ZMW {Number(activeAdvance.remaining_balance_zmw).toFixed(2)}</strong>.
+                                Enter the repayment deduction amount below to deduct it from this salary payment.
+                            </p>
+                            <div style={{ marginTop: 10 }}>
+                                <label style={LABEL_STYLE}>Repayment Deduction (ZMW)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    style={INPUT_STYLE}
+                                    value={deductionAmount}
+                                    onChange={e => setDeductionAmount(e.target.value)}
+                                    placeholder="0.00"
+                                />
+                                {form.amount_zmw && !isNaN(Number(form.amount_zmw)) && !isNaN(Number(deductionAmount)) && (
+                                    <p style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: 'var(--ff-green)' }}>
+                                        Net Driver Payout: ZMW {(Number(form.amount_zmw) - Number(deductionAmount)).toFixed(2)}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     )}
 

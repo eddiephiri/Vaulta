@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, CalendarClock, RefreshCw } from 'lucide-react';
+import { Plus, CalendarClock, RefreshCw, ArrowLeftRight, Banknote } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useCashingSchedules } from '../hooks/useCashingSchedules';
 import { useExpectedCashings } from '../hooks/useExpectedCashings';
@@ -8,6 +8,7 @@ import { useDrivers } from '../hooks/useDrivers';
 import { AddCashingScheduleModal } from '../components/AddCashingScheduleModal';
 import { AddIncomeModal } from '../components/AddIncomeModal';
 import { ResolveCashingModal } from '../components/ResolveCashingModal';
+import { SwapWeeksModal } from '../components/SwapWeeksModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
@@ -28,14 +29,31 @@ const SOURCE_COLORS: Record<string, string> = {
     other: '#94a3b8',
 };
 
+const getCurrentCycleCashings = (vCashings: ExpectedCashing[], cycleWeeks: number) => {
+    if (!vCashings.length) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    
+    // Find the next upcoming pending/completed cashing, or fallback to the last one
+    let currentIdx = vCashings.findIndex(c => c.expected_date >= today);
+    if (currentIdx === -1) currentIdx = vCashings.length - 1;
+    
+    const currentCashing = vCashings[currentIdx];
+    const wkNum = currentCashing.week_number;
+    
+    // Start index is currentIdx - (wkNum - 1)
+    const startIdx = Math.max(0, currentIdx - (wkNum - 1));
+    return vCashings.slice(startIdx, startIdx + cycleWeeks);
+};
+
 export function CashingSchedules() {
     const { canEditApp } = useWorkspace();
     const [showModal, setShowModal] = useState(false);
     const { schedules, loading: schedLoading, error: schedError, refetch } = useCashingSchedules();
-    const { overdue, loading: overdueLoading, refetch: refetchOverdue } = useExpectedCashings();
+    const { cashings, overdue, loading: overdueLoading, refetch: refetchOverdue } = useExpectedCashings();
     const { vehicles } = useVehicles();
     const { drivers } = useDrivers();   // all drivers for hire-date lookup
     const [searchQuery, setSearchQuery] = useState('');
+    const [swappingVehicle, setSwappingVehicle] = useState<{ id: string; plate: string } | null>(null);
 
     // Modal states for resolving overdue cashings
     const [resolvingCashing, setResolvingCashing] = useState<ExpectedCashing | null>(null);
@@ -210,6 +228,102 @@ export function CashingSchedules() {
                                                 {s.notes}
                                             </p>
                                         )}
+
+                                        {/* Stepper showing current cycle cashings */}
+                                        <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--ff-border)' }}>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--ff-text-muted)' }}>
+                                                    Current Cycle Tracking
+                                                </span>
+                                                {canEditApp('transport') && (
+                                                    <button
+                                                        onClick={() => setSwappingVehicle({ id: s.vehicle_id, plate: s.vehicle?.plate ?? 'Vehicle' })}
+                                                        className="text-xs px-2.5 py-1 rounded border transition-colors flex items-center gap-1 cursor-pointer"
+                                                        style={{ borderColor: 'var(--ff-border)', color: 'var(--ff-text-primary)', background: 'var(--ff-surface)' }}
+                                                    >
+                                                        <ArrowLeftRight size={12} />
+                                                        Swap Weeks
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {(() => {
+                                                const vCashings = cashings.filter(c => c.vehicle_id === s.vehicle_id);
+                                                const cycleCashings = getCurrentCycleCashings(vCashings, s.cycle_weeks);
+
+                                                if (cycleCashings.length === 0) {
+                                                    return (
+                                                        <p className="text-xs italic" style={{ color: 'var(--ff-text-muted)' }}>No expected cashings generated for this schedule.</p>
+                                                    );
+                                                }
+
+                                                const today = new Date().toISOString().slice(0, 10);
+
+                                                return (
+                                                    <div className="flex items-center justify-between relative px-2 py-1">
+                                                        {/* Stepper line */}
+                                                        <div className="absolute top-1/2 left-0 right-0 h-0.5 -translate-y-1/2 z-0" style={{ background: 'var(--ff-border)' }}></div>
+
+                                                        {cycleCashings.map((c) => {
+                                                            const isSalary = c.is_salary_week;
+                                                            const isToday = c.expected_date === today;
+                                                            const isOverdue = c.expected_date < today && c.status === 'pending';
+                                                            
+                                                            let borderColor = 'var(--ff-border)';
+                                                            let bgColor = 'var(--ff-surface)';
+                                                            let textColor = 'var(--ff-text-muted)';
+                                                            let nodeLabel = String(c.week_number);
+
+                                                            if (c.status === 'recorded' || c.status === 'late_admin') {
+                                                                borderColor = '#22c55e';
+                                                                bgColor = '#22c55e';
+                                                                textColor = 'white';
+                                                                nodeLabel = '✓';
+                                                            } else if (c.status === 'late_driver') {
+                                                                borderColor = '#ef4444';
+                                                                bgColor = '#ef4444';
+                                                                textColor = 'white';
+                                                                nodeLabel = '✗';
+                                                            } else if (c.status === 'deferred_to_salary') {
+                                                                borderColor = '#a855f7';
+                                                                bgColor = '#a855f7';
+                                                                textColor = 'white';
+                                                                nodeLabel = '→';
+                                                            } else if (isOverdue) {
+                                                                borderColor = '#f59e0b';
+                                                                bgColor = 'var(--ff-surface)';
+                                                                textColor = '#f59e0b';
+                                                            } else if (isToday) {
+                                                                borderColor = 'var(--ff-accent)';
+                                                                bgColor = 'var(--ff-surface)';
+                                                                textColor = 'var(--ff-accent)';
+                                                            }
+
+                                                            const formattedDate = new Date(c.expected_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+                                                            return (
+                                                                <div key={c.id} className="flex flex-col items-center gap-1 z-10 relative group" title={`${isSalary ? 'Salary Week • ' : ''}Expected ${c.expected_date} [Status: ${c.status}]`}>
+                                                                    <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] border-2 shadow-sm transition-transform cursor-help"
+                                                                        style={{
+                                                                            borderColor,
+                                                                            background: bgColor,
+                                                                            color: textColor,
+                                                                        }}>
+                                                                        {nodeLabel}
+                                                                        {isSalary && (
+                                                                            <span className="absolute -top-2 -right-1.5 bg-purple-600 text-white rounded-full p-0.5 shadow-sm">
+                                                                                <Banknote size={8} />
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="text-[10px] font-medium" style={{ color: 'var(--ff-text-muted)' }}>{formattedDate}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -248,14 +362,27 @@ export function CashingSchedules() {
             />
 
             {resolvingCashing && (
-                <ResolveCashingModal
-                    open={!!resolvingCashing}
-                    onClose={() => setResolvingCashing(null)}
+                 <ResolveCashingModal
+                     open={!!resolvingCashing}
+                     onClose={() => setResolvingCashing(null)}
+                     onSuccess={() => {
+                         refetchOverdue();
+                         setResolvingCashing(null);
+                     }}
+                     cashing={resolvingCashing}
+                 />
+             )}
+
+            {swappingVehicle && (
+                <SwapWeeksModal
+                    open={!!swappingVehicle}
+                    onClose={() => setSwappingVehicle(null)}
                     onSuccess={() => {
+                        refetch();
                         refetchOverdue();
-                        setResolvingCashing(null);
                     }}
-                    cashing={resolvingCashing}
+                    vehicleId={swappingVehicle.id}
+                    vehiclePlate={swappingVehicle.plate}
                 />
             )}
         </div>

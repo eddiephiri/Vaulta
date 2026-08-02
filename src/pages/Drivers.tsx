@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Plus, Users, Phone, Car, Banknote, Pencil, KeyRound, ClipboardCheck } from 'lucide-react';
+import { Plus, Users, Phone, Car, Banknote, Pencil, KeyRound, ClipboardCheck, Coins } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { useDrivers } from '../hooks/useDrivers';
 import { useVehicles } from '../hooks/useVehicles';
 import { useDriverReviewFlags } from '../hooks/useDriverReviewFlags';
+import { useDriverAdvances } from '../hooks/useDriverAdvances';
 import { AddDriverModal } from '../components/AddDriverModal';
 import { ProvisionDriverModal } from '../components/ProvisionDriverModal';
 import { DriverReviewModal } from '../components/DriverReviewModal';
+import { AddLoanModal } from '../components/AddLoanModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
@@ -18,11 +20,16 @@ export function Drivers() {
     const [editing, setEditing] = useState<Driver | null>(null);
     const [provisioning, setProvisioning] = useState<Driver | null>(null);
     const [reviewing, setReviewing] = useState<Driver | null>(null);
+    const [loaningDriver, setLoaningDriver] = useState<Driver | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const { canEditApp } = useWorkspace();
-    const { drivers, loading, error, refetch } = useDrivers();
+    const { drivers, loading: driversLoading, error: driversError, refetch } = useDrivers();
+    const { advances, loading: advancesLoading, error: advancesError, refetch: refetchAdvances } = useDriverAdvances();
     const { vehicles } = useVehicles();
     const { flagged, refetch: refetchFlags } = useDriverReviewFlags();
+
+    const loading = driversLoading || advancesLoading;
+    const error = driversError || advancesError;
 
     const filteredDrivers = drivers.filter((d) => {
         if (!searchQuery) return true;
@@ -153,6 +160,17 @@ export function Drivers() {
                                             )}
                                             {canEditApp('transport') && (
                                                 <button
+                                                    onClick={() => setLoaningDriver(driver)}
+                                                    title="Issue Loan / Advance"
+                                                    style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
+                                                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
+                                                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
+                                                >
+                                                    <Coins size={16} />
+                                                </button>
+                                            )}
+                                            {canEditApp('transport') && (
+                                                <button
                                                     onClick={() => openEdit(driver)}
                                                     title="Edit driver"
                                                     style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
@@ -185,6 +203,20 @@ export function Drivers() {
                                             <Banknote size={12} />
                                             Salary: <span style={{ color: 'var(--ff-green)' }}>{fmt(driver.salary_zmw)}/mo</span>
                                         </div>
+
+                                        {(() => {
+                                            const activeAdvances = advances.filter(a => a.driver_id === driver.id && a.status === 'active');
+                                            if (activeAdvances.length === 0) return null;
+                                            const totalBalance = activeAdvances.reduce((acc, curr) => acc + Number(curr.remaining_balance_zmw), 0);
+                                            const totalDeduction = activeAdvances.reduce((acc, curr) => acc + (curr.repayment_type === 'salary_deduction' ? Number(curr.deduction_per_week_zmw) : 0), 0);
+
+                                            return (
+                                                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--ff-text-muted)' }}>
+                                                    <Coins size={12} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                                                    <span>Advance: <strong style={{ color: '#f59e0b' }}>{fmt(totalBalance)}</strong> {totalDeduction > 0 && `(Deduct: ${fmt(totalDeduction)}/wk)`}</span>
+                                                </div>
+                                            );
+                                        })()}
 
                                         {driver.hire_date && (
                                             <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>
@@ -234,6 +266,19 @@ export function Drivers() {
                 onChange={() => { refetchFlags(); refetch(); }}
                 driver={reviewing}
             />
+
+            {loaningDriver && (
+                <AddLoanModal
+                    open={!!loaningDriver}
+                    onClose={() => setLoaningDriver(null)}
+                    onSuccess={() => {
+                        refetch();
+                        refetchAdvances();
+                    }}
+                    drivers={drivers}
+                    initialDriverId={loaningDriver.id}
+                />
+            )}
         </div>
     );
 }

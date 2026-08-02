@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Pencil, Upload, Eye, Loader2, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useDriver } from '../../contexts/DriverContext';
@@ -38,6 +38,33 @@ export function DriverProfile() {
     const [form, setForm] = useState({ name: '', license_number: '', nrc_number: '' });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [advances, setAdvances] = useState<any[]>([]);
+    const [advancesLoading, setAdvancesLoading] = useState(true);
+
+    // Fetch advances/loans for the logged in driver
+    useEffect(() => {
+        if (!driver) return;
+        
+        let isMounted = true;
+        const fetchDriverAdvances = async () => {
+            setAdvancesLoading(true);
+            const { data, error: err } = await supabase
+                .from('driver_advances')
+                .select('*')
+                .eq('driver_id', driver.id)
+                .order('issued_date', { ascending: false });
+
+            if (isMounted) {
+                setAdvancesLoading(false);
+                if (!err && data) {
+                    setAdvances(data);
+                }
+            }
+        };
+
+        fetchDriverAdvances();
+        return () => { isMounted = false; };
+    }, [driver]);
 
     const startEdit = () => {
         if (!driver) return;
@@ -123,6 +150,56 @@ export function DriverProfile() {
                 <p className="text-xs -mt-3 px-1" style={{ color: 'var(--ff-text-muted)' }}>
                     Your phone is your sign-in number — ask your manager to change it.
                 </p>
+            )}
+
+            {/* Loans & Advances */}
+            {driver && (
+                <div>
+                    <p className="text-xs uppercase tracking-wide mb-2 px-1" style={{ color: 'var(--ff-text-muted)' }}>
+                        Loans & Advances
+                    </p>
+                    <div className="rounded-xl p-4 border flex flex-col gap-3" style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}>
+                        {advancesLoading ? (
+                            <p className="text-xs text-center" style={{ color: 'var(--ff-text-muted)' }}>Loading loans…</p>
+                        ) : advances.length === 0 ? (
+                            <p className="text-xs italic" style={{ color: 'var(--ff-text-muted)' }}>No active loans or salary advances.</p>
+                        ) : (
+                            <div className="divide-y" style={{ borderColor: 'var(--ff-border)' }}>
+                                {advances.map(a => {
+                                    const formattedAmt = `ZMW ${Number(a.amount_zmw).toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                    const formattedRem = `ZMW ${Number(a.remaining_balance_zmw).toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                    const formattedDed = `ZMW ${Number(a.deduction_per_week_zmw).toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                                    return (
+                                        <div key={a.id} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-semibold" style={{ color: 'var(--ff-text-primary)' }}>
+                                                    Issued: {a.issued_date}
+                                                </p>
+                                                <p className="text-xs mt-0.5" style={{ color: 'var(--ff-text-muted)' }}>
+                                                    Principal: {formattedAmt} • Status: <span style={{ textTransform: 'capitalize', color: a.status === 'active' ? '#f59e0b' : '#22c55e' }}>{a.status}</span>
+                                                </p>
+                                                {a.notes && (
+                                                    <p className="text-[11px] italic mt-1 text-slate-400">"{a.notes}"</p>
+                                                )}
+                                            </div>
+                                            <div className="text-right flex-shrink-0">
+                                                <p className="text-sm font-extrabold" style={{ color: a.remaining_balance_zmw > 0 ? '#f59e0b' : 'var(--ff-text-muted)' }}>
+                                                    Bal: {formattedRem}
+                                                </p>
+                                                {a.repayment_type === 'salary_deduction' && a.remaining_balance_zmw > 0 && (
+                                                    <p className="text-[10px]" style={{ color: 'var(--ff-text-muted)' }}>
+                                                        Deduct: {formattedDed}/wk
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
 
             {/* Documents */}
