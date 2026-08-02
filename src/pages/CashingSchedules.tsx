@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, CalendarClock, RefreshCw, ArrowLeftRight, Banknote } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/PageHeader';
@@ -47,7 +47,7 @@ const getCurrentCycleCashings = (vCashings: ExpectedCashing[], cycleWeeks: numbe
 };
 
 export function CashingSchedules() {
-    const { canEditApp } = useWorkspace();
+    const { activeWorkspaceId, canEditApp } = useWorkspace();
     const [showModal, setShowModal] = useState(false);
     const { schedules, loading: schedLoading, error: schedError, refetch } = useCashingSchedules();
     const { cashings, overdue, loading: overdueLoading, refetch: refetchOverdue } = useExpectedCashings();
@@ -66,6 +66,24 @@ export function CashingSchedules() {
     } | null>(null);
 
     const [clearingOverdue, setClearingOverdue] = useState(false);
+
+    // Swap requests states
+    const [swapRequests, setSwapRequests] = useState<any[]>([]);
+
+    const fetchSwapRequests = async () => {
+        if (!activeWorkspaceId) return;
+        const { data } = await supabase
+            .from('driver_swap_requests')
+            .select('*, driver:drivers(id, name, phone, vehicle:vehicles(id, plate))')
+            .eq('workspace_id', activeWorkspaceId)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+        setSwapRequests(data ?? []);
+    };
+
+    useEffect(() => {
+        fetchSwapRequests();
+    }, [activeWorkspaceId]);
 
     const handleClearOverdue = async () => {
         if (!window.confirm('Are you sure you want to dismiss and clear all current overdue cashing reminders? This will delete the pending schedule reminders before today but will NOT remove any recorded income/salary data.')) {
@@ -119,6 +137,77 @@ export function CashingSchedules() {
                     </button>
                 )}
             />
+
+            {/* Pending Swap Requests */}
+            {canEditApp('transport') && swapRequests.length > 0 && (
+                <div className="mb-6 p-4 rounded-xl border border-purple-200"
+                    style={{ background: 'color-mix(in srgb, var(--ff-accent) 8%, transparent)' }}>
+                    <p className="text-sm font-bold mb-3 flex items-center gap-1.5" style={{ color: 'var(--ff-accent)' }}>
+                        <ArrowLeftRight size={16} />
+                        Pending Driver Week Swap Requests ({swapRequests.length})
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        {swapRequests.map(req => {
+                            const cashing1 = cashings.find(c => c.id === req.cashing_id_1);
+                            const cashing2 = cashings.find(c => c.id === req.cashing_id_2);
+
+                            const handleApprove = async () => {
+                                if (!window.confirm(`Approve request from ${req.driver?.name} to swap Week ${cashing1?.week_number} with Week ${cashing2?.week_number}?`)) return;
+                                const { error } = await supabase.rpc('approve_swap_request', { p_request_id: req.id });
+                                if (error) alert('Failed to approve: ' + error.message);
+                                else {
+                                    fetchSwapRequests();
+                                    refetch();
+                                    refetchOverdue();
+                                }
+                            };
+
+                            const handleReject = async () => {
+                                const notes = window.prompt('Enter reason for rejection (optional):');
+                                if (notes === null) return; // user cancelled
+                                const { error } = await supabase.rpc('reject_swap_request', { 
+                                    p_request_id: req.id,
+                                    p_notes: notes.trim() || null 
+                                });
+                                if (error) alert('Failed to reject: ' + error.message);
+                                else {
+                                    fetchSwapRequests();
+                                    refetch();
+                                    refetchOverdue();
+                                }
+                            };
+
+                            return (
+                                <div key={req.id} className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 rounded-lg"
+                                    style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                                    <div className="text-xs leading-relaxed" style={{ color: 'var(--ff-text-primary)' }}>
+                                        <p className="font-semibold text-sm">
+                                            {req.driver?.name} ({req.driver?.vehicle?.plate ?? 'No Vehicle Assigned'})
+                                        </p>
+                                        <p className="mt-1" style={{ color: 'var(--ff-text-muted)' }}>
+                                            Requested to swap <strong>Week {cashing1?.week_number}</strong> (Cashing) with <strong>Week {cashing2?.week_number}</strong> (Salary).
+                                        </p>
+                                        {req.reason && (
+                                            <p className="mt-1 italic text-slate-400">
+                                                Reason: "{req.reason}"
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2 flex-shrink-0 self-end md:self-center">
+                                        <button onClick={handleReject} className="px-3 py-1.5 rounded text-xs font-semibold border border-red-200 hover:bg-red-50 text-red-600 dark:border-red-900/30 dark:hover:bg-red-950/20 cursor-pointer">
+                                            Reject
+                                        </button>
+                                        <button onClick={handleApprove} className="px-3 py-1.5 rounded text-xs font-semibold text-white cursor-pointer"
+                                            style={{ background: 'var(--ff-accent)' }}>
+                                            Approve Swap
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Overdue alert */}
             {!overdueLoading && overdue.length > 0 && (

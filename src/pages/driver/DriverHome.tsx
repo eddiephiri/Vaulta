@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
-import { CalendarClock, Banknote, CheckCircle2, Clock, AlertTriangle, Calendar, CornerDownRight, MessageSquare, Phone } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { CalendarClock, Banknote, CheckCircle2, Clock, AlertTriangle, Calendar, CornerDownRight, MessageSquare, Phone, X } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { useDriver } from '../../contexts/DriverContext';
 import { useDriverCashings } from '../../hooks/useDriverCashings';
 import { EnableNotificationsButton } from '../../components/EnableNotificationsButton';
-import type { CashingStatus } from '../../types';
+import type { CashingStatus, ExpectedCashing } from '../../types';
 
 const STATUS_META: Record<CashingStatus, { label: string; color: string }> = {
     recorded: { label: 'On time', color: '#22c55e' },
@@ -22,11 +23,82 @@ export function DriverHome() {
 
     const today = new Date().toISOString().slice(0, 10);
 
+    // Swap Request states
+    const [swappingWeek, setSwappingWeek] = useState<ExpectedCashing | null>(null);
+    const [swapReason, setSwapReason] = useState('');
+    const [submittingSwap, setSubmittingSwap] = useState(false);
+    const [swapError, setSwapError] = useState<string | null>(null);
+    const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+
+    const fetchPendingRequests = async () => {
+        if (!driver) return;
+        const { data } = await supabase
+            .from('driver_swap_requests')
+            .select('*')
+            .eq('driver_id', driver.id)
+            .eq('status', 'pending');
+        setPendingRequests(data ?? []);
+    };
+
+    useEffect(() => {
+        if (driver) {
+            fetchPendingRequests();
+        }
+    }, [driver]);
+
+    const handleSubmitSwap = async () => {
+        if (!driver || !swappingWeek) return;
+        
+        const salaryCashing = cycleCashings.find(c => c.is_salary_week);
+        if (!salaryCashing) {
+            setSwapError('No salary week found in current cycle.');
+            return;
+        }
+
+        setSubmittingSwap(true);
+        setSwapError(null);
+
+        const { error: supaErr } = await supabase
+            .from('driver_swap_requests')
+            .insert({
+                workspace_id: driver.workspace_id,
+                driver_id: driver.id,
+                cashing_id_1: swappingWeek.id,
+                cashing_id_2: salaryCashing.id,
+                reason: swapReason.trim() || null,
+                status: 'pending'
+            });
+
+        setSubmittingSwap(false);
+
+        if (supaErr) {
+            setSwapError(supaErr.message);
+        } else {
+            setSwappingWeek(null);
+            setSwapReason('');
+            fetchPendingRequests();
+        }
+    };
+
     // Current/next cashing: soonest on/after today, else the most recent past one.
     const current = useMemo(() => {
         const upcoming = cashings.find(c => c.expected_date >= today);
         return upcoming ?? (cashings.length ? cashings[cashings.length - 1] : null);
     }, [cashings, today]);
+
+    // Current cycle expected cashings (consistent with Admin tracking cycle)
+    const cycleCashings = useMemo(() => {
+        if (!cashings.length || !schedule) return [];
+        
+        let currentIdx = cashings.findIndex(c => c.expected_date >= today);
+        if (currentIdx === -1) currentIdx = cashings.length - 1;
+        
+        const currentCashing = cashings[currentIdx];
+        const wkNum = currentCashing.week_number;
+        
+        const startIdx = Math.max(0, currentIdx - (wkNum - 1));
+        return cashings.slice(startIdx, startIdx + schedule.cycle_weeks);
+    }, [cashings, schedule, today]);
 
     // On-time record: recorded = on time, late_driver = late. late_admin and
     // pending are excluded so office delays / future weeks don't count.
@@ -151,15 +223,38 @@ export function DriverHome() {
                             {/* Connection line */}
                             <div className="absolute top-1/2 left-0 right-0 h-0.5 -translate-y-1/2 bg-slate-200 dark:bg-slate-700 z-0"></div>
                             
-                            {Array.from({ length: schedule.cycle_weeks }).map((_, i) => {
-                                const wkNum = i + 1;
-                                const isPast = wkNum < current.week_number;
-                                const isCurrent = wkNum === current.week_number;
-                                const isSalary = wkNum === schedule.salary_week;
+                            {cycleCashings.map((c) => {
+                                const wkNum = c.week_number;
+                                const isPast = c.status !== 'pending';
+                                const isCurrent = c.id === current.id;
+                                const isSalary = c.is_salary_week;
+
+                                const hasPendingSwap = pendingRequests.some(
+                                    r => r.cashing_id_1 === c.id || r.cashing_id_2 === c.id
+                                );
+
+                                // Check if this node is clickable for swap request:
+                                // Must be a future pending week and NOT currently a salary week.
+                                const isClickable = !isPast && !isSalary && c.status === 'pending';
+
+                                const handleNodeClick = () => {
+                                    if (!isClickable) return;
+                                    if (pendingRequests.length > 0) {
+                                        alert('You already have a pending swap request. Please wait for your manager to review it.');
+                                        return;
+                                    }
+                                    setSwapError(null);
+                                    setSwapReason('');
+                                    setSwappingWeek(c);
+                                };
 
                                 return (
-                                    <div key={wkNum} className="flex flex-col items-center gap-1.5 z-10 relative">
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-sm"
+                                    <div key={c.id} 
+                                        onClick={handleNodeClick}
+                                        className={`flex flex-col items-center gap-1.5 z-10 relative ${isClickable ? 'cursor-pointer group' : ''}`}
+                                        title={isClickable ? 'Tap to request salary swap' : undefined}
+                                    >
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-sm relative"
                                             style={{
                                                 background: isPast
                                                     ? '#22c55e'
@@ -185,6 +280,14 @@ export function DriverHome() {
                                                     <Banknote size={10} />
                                                 </div>
                                             )}
+
+                                            {/* Pending swap badge overlay */}
+                                            {hasPendingSwap && (
+                                                <div className="absolute -bottom-1 -right-1.5 bg-amber-500 text-white rounded-full p-0.5 shadow-sm animate-pulse"
+                                                    title="Pending Swap Request">
+                                                    <Clock size={9} />
+                                                </div>
+                                            )}
                                         </div>
                                         <span className="text-[10px] font-medium"
                                             style={{
@@ -203,8 +306,27 @@ export function DriverHome() {
                         <p className="text-[11px] text-center mt-3" style={{ color: 'var(--ff-text-muted)' }}>
                             {current.is_salary_week
                                 ? '🎉 This is your salary/deduction week. Enjoy your payout!'
-                                : `Currently in Week ${current.week_number}. Salary week occurs in Week ${schedule.salary_week}.`}
+                                : `Currently in Week ${current.week_number}. Salary week occurs in Week ${cycleCashings.find(c => c.is_salary_week)?.week_number ?? schedule.salary_week}.`}
                         </p>
+
+                        {/* Pending swap list for transparency */}
+                        {pendingRequests.length > 0 && (
+                            <div className="mt-4 p-3 rounded-xl border" style={{ borderColor: 'var(--ff-border)', background: 'var(--ff-bg)' }}>
+                                <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#f59e0b' }}>
+                                    Pending Swap Request
+                                </p>
+                                {pendingRequests.map(r => {
+                                    const cashing1 = cashings.find(c => c.id === r.cashing_id_1);
+                                    const cashing2 = cashings.find(c => c.id === r.cashing_id_2);
+                                    return (
+                                        <div key={r.id} className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>
+                                            Requested to swap <strong>Week {cashing1?.week_number}</strong> with Salary <strong>Week {cashing2?.week_number}</strong>.
+                                            {r.reason && <p className="mt-1 italic text-[11px]">Reason: "{r.reason}"</p>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     {/* Dynamic Urgency / Next Cashing Card */}
@@ -400,6 +522,81 @@ export function DriverHome() {
                     </a>
                 </div>
             </div>
+
+            {/* Swap Request Modal */}
+            {swappingWeek && (
+                <div onClick={() => setSwappingWeek(null)} style={{
+                    position: 'fixed', inset: 0, zIndex: 50,
+                    background: 'rgba(0,0,0,0.6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: 16,
+                }}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        background: 'var(--ff-surface)',
+                        border: '1px solid var(--ff-border)',
+                        borderRadius: 16, width: '100%', maxWidth: 'min(380px, 95vw)', padding: '24px 20px',
+                        boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+                        maxHeight: '90vh', overflowY: 'auto',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ff-text-primary)' }}>
+                                Request Salary Week Swap
+                            </h2>
+                            <button onClick={() => setSwappingWeek(null)} style={{ background: 'none', border: 'none', color: 'var(--ff-text-muted)', padding: 4 }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {swapError && (
+                            <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 8, background: '#ef444420', color: '#ef4444', border: '1px solid #ef444440', fontSize: 12 }}>
+                                {swapError}
+                            </div>
+                        )}
+
+                        <p className="text-xs leading-relaxed" style={{ color: 'var(--ff-text-muted)' }}>
+                            Would you like to request a swap of your upcoming <strong>Week {swappingWeek.week_number}</strong> (Cashing) with the cycle's <strong>Week {cycleCashings.find(c => c.is_salary_week)?.week_number}</strong> (Salary)? 
+                            This requires approval from your manager.
+                        </p>
+
+                        <div className="mt-4">
+                            <label className="block text-[11px] mb-1.5" style={{ color: 'var(--ff-text-muted)' }}>
+                                Reason for request (optional)
+                            </label>
+                            <textarea
+                                rows={2}
+                                style={{
+                                    background: 'var(--ff-surface)',
+                                    color: 'var(--ff-text-primary)',
+                                    border: '1px solid var(--ff-border)',
+                                    borderRadius: 8,
+                                    padding: '8px 10px',
+                                    fontSize: 13,
+                                    width: '100%',
+                                    outline: 'none',
+                                    resize: 'none',
+                                    boxSizing: 'border-box',
+                                }}
+                                placeholder="E.g. low income, personal emergency..."
+                                value={swapReason}
+                                onChange={e => setSwapReason(e.target.value)}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                            <button type="button" onClick={() => setSwappingWeek(null)} style={{
+                                flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13,
+                                background: 'var(--ff-surface)', color: 'var(--ff-text-muted)',
+                                border: '1px solid var(--ff-border)',
+                            }}>Cancel</button>
+                            <button type="button" disabled={submittingSwap} onClick={handleSubmitSwap} style={{
+                                flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13,
+                                fontWeight: 600, background: submittingSwap ? '#334155' : 'var(--ff-accent)',
+                                color: 'white', border: 'none',
+                            }}>{submittingSwap ? 'Submitting…' : 'Submit Request'}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
