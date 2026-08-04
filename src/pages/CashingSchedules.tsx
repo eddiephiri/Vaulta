@@ -57,6 +57,7 @@ export function CashingSchedules() {
     const [swappingVehicle, setSwappingVehicle] = useState<{ id: string; plate: string } | null>(null);
 
     // Modal states for resolving overdue cashings
+    const [overdueExpanded, setOverdueExpanded] = useState(false);
     const [resolvingCashing, setResolvingCashing] = useState<ExpectedCashing | null>(null);
     const [incomePrefill, setIncomePrefill] = useState<{
         vehicle_id: string;
@@ -213,10 +214,24 @@ export function CashingSchedules() {
             {!overdueLoading && overdue.length > 0 && (
                 <div className="mb-6 p-4 rounded-xl"
                     style={{ background: '#f59e0b15', border: '1px solid #f59e0b40' }}>
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-semibold text-amber-500" style={{ color: '#f59e0b' }}>
-                            ⚠ {overdue.length} overdue cashing{overdue.length > 1 ? 's' : ''}
-                        </p>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-amber-500" style={{ color: '#f59e0b' }}>
+                                ⚠ {overdue.length} overdue cashing{overdue.length > 1 ? 's' : ''}
+                            </p>
+                            <button
+                                onClick={() => setOverdueExpanded(!overdueExpanded)}
+                                className="text-[11px] px-2 py-0.5 rounded font-medium transition-colors cursor-pointer hover:bg-[#f59e0b15]"
+                                style={{
+                                    borderColor: '#f59e0b50',
+                                    color: '#f59e0b',
+                                    border: '1px solid #f59e0b30',
+                                    background: 'transparent'
+                                }}
+                            >
+                                {overdueExpanded ? 'Hide Details' : 'Show Details'}
+                            </button>
+                        </div>
                         {canEditApp('transport') && (
                             <button
                                 onClick={handleClearOverdue}
@@ -232,52 +247,54 @@ export function CashingSchedules() {
                             </button>
                         )}
                     </div>
-                    <div className="space-y-2 mt-3">
-                        {overdue.map(c => (
-                            <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg"
-                                style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
-                                <div>
-                                    <p className="text-sm font-semibold" style={{ color: 'var(--ff-text-primary)' }}>
-                                        {c.vehicle?.plate} — {c.vehicle?.make} {c.vehicle?.model}
-                                    </p>
-                                    <p className="text-xs mt-1" style={{ color: 'var(--ff-text-muted)' }}>
-                                        Expected {c.expected_date} · Week {c.week_number}
-                                        {c.is_salary_week && (
-                                            <span className="ml-2 px-1.5 py-0.5 rounded text-xs"
-                                                style={{ background: '#a855f720', color: '#a855f7' }}>
-                                                Salary week
-                                            </span>
+                    {overdueExpanded && (
+                        <div className="space-y-2 mt-3 max-h-[280px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+                            {overdue.map(c => (
+                                <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg"
+                                    style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                                    <div>
+                                        <p className="text-sm font-semibold" style={{ color: 'var(--ff-text-primary)' }}>
+                                            {c.vehicle?.plate} — {c.vehicle?.make} {c.vehicle?.model}
+                                        </p>
+                                        <p className="text-xs mt-1" style={{ color: 'var(--ff-text-muted)' }}>
+                                            Expected {c.expected_date} · Week {c.week_number}
+                                            {c.is_salary_week && (
+                                                <span className="ml-2 px-1.5 py-0.5 rounded text-xs"
+                                                    style={{ background: '#a855f720', color: '#a855f7' }}>
+                                                    Salary week
+                                                </span>
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {canEditApp('transport') && (
+                                            <button
+                                                onClick={() => setIncomePrefill({
+                                                    vehicle_id: c.vehicle_id,
+                                                    expected_cashing_id: c.id,
+                                                    expected_date: c.expected_date,
+                                                    is_salary_week: c.is_salary_week,
+                                                })}
+                                                className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
+                                                style={{ background: 'var(--ff-green)', color: 'white' }}
+                                            >
+                                                Log Income
+                                            </button>
                                         )}
-                                    </p>
+                                        {canEditApp('transport') && (
+                                            <button
+                                                onClick={() => setResolvingCashing(c)}
+                                                className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors hover:opacity-80"
+                                                style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                                            >
+                                                Resolve Manually
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {canEditApp('transport') && (
-                                        <button
-                                            onClick={() => setIncomePrefill({
-                                                vehicle_id: c.vehicle_id,
-                                                expected_cashing_id: c.id,
-                                                expected_date: c.expected_date,
-                                                is_salary_week: c.is_salary_week,
-                                            })}
-                                            className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
-                                            style={{ background: 'var(--ff-green)', color: 'white' }}
-                                        >
-                                            Log Income
-                                        </button>
-                                    )}
-                                    {canEditApp('transport') && (
-                                        <button
-                                            onClick={() => setResolvingCashing(c)}
-                                            className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors hover:opacity-80"
-                                            style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
-                                        >
-                                            Resolve Manually
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
