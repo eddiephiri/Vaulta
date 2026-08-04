@@ -112,3 +112,54 @@ input:focus {
 .custom-button-hover:hover {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
+
+/* Premium Tooltips */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, -6px) scale(0.9);
+  background: var(--ff-navy);
+  color: #ffffff;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -4px rgba(0, 0, 0, 0.25);
+  z-index: 50;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, 0) scale(0.9);
+  border-width: 5px 5px 0;
+  border-style: solid;
+  border-color: var(--ff-navy) transparent transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 50;
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translate(-50%, -8px) scale(1);
+}
+
+[data-tooltip]:hover::before {
+  opacity: 1;
+  transform: translate(-50%, -3px) scale(1);
+}

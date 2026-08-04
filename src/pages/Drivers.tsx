@@ -130,7 +130,7 @@ export function Drivers() {
                                             {canEditApp('transport') && driver.user_id && (
                                                 <button
                                                     onClick={() => setReviewing(driver)}
-                                                    title="Review documents & edits"
+                                                    data-tooltip="Review documents & edits"
                                                     style={{ position: 'relative', background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
                                                     onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
                                                     onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
@@ -145,7 +145,7 @@ export function Drivers() {
                                                 driver.user_id ? (
                                                     <button
                                                         onClick={() => setProvisioning(driver)}
-                                                        title="Reset driver password"
+                                                        data-tooltip="Reset driver password"
                                                         style={{ background: 'none', border: 'none', padding: 4, color: '#22c55e', borderRadius: 6 }}
                                                         onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
                                                         onMouseLeave={e => (e.currentTarget.style.color = '#22c55e')}
@@ -155,7 +155,7 @@ export function Drivers() {
                                                 ) : (
                                                     <button
                                                         onClick={() => setProvisioning(driver)}
-                                                        title="Set up app access"
+                                                        data-tooltip="Set up app access"
                                                         style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
                                                         onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
                                                         onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
@@ -167,7 +167,7 @@ export function Drivers() {
                                             {canEditApp('transport') && (
                                                 <button
                                                     onClick={() => setLoaningDriver(driver)}
-                                                    title="Issue Loan / Advance"
+                                                    data-tooltip="Issue Loan / Advance"
                                                     style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
                                                     onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
                                                     onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
@@ -178,7 +178,7 @@ export function Drivers() {
                                             {canEditApp('transport') && (
                                                 <button
                                                     onClick={() => openEdit(driver)}
-                                                    title="Edit driver"
+                                                    data-tooltip="Edit driver"
                                                     style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ff-text-muted)', borderRadius: 6 }}
                                                     onMouseEnter={e => (e.currentTarget.style.color = 'var(--ff-accent)')}
                                                     onMouseLeave={e => (e.currentTarget.style.color = 'var(--ff-text-muted)')}
