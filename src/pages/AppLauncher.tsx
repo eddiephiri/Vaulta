@@ -111,7 +111,7 @@ export function AppLauncher() {
                         <>
                             <div className="w-px h-3 bg-slate-700 self-center" />
                             <button 
-                                onClick={() => navigate('/transport/settings')}
+                                onClick={() => navigate('/settings')}
                                 className="text-xs font-bold uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1.5"
                                 style={{ color: 'var(--ff-text-muted)' }}
                             >

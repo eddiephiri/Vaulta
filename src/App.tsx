@@ -123,6 +123,7 @@ export default function App() {
               }>
                 <Route index element={<AppLauncher />} />
                 <Route path="join" element={<JoinWorkspace />} />
+                <Route path="settings" element={<Settings />} />
                 
                 <Route path="transport" element={<Layout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
@@ -136,7 +137,6 @@ export default function App() {
                   <Route path="drivers" element={<Drivers />} />
                   <Route path="cashing-schedules" element={<CashingSchedules />} />
                   <Route path="reports" element={<Reports />} />
-                  <Route path="settings" element={<Settings />} />
                   <Route path="wishlist" element={<Wishlist />} />
                 </Route>
 

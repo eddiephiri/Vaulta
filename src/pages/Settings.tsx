@@ -1,13 +1,30 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { supabase } from '../lib/supabase';
 import { InviteMemberModal } from '../components/InviteMemberModal';
-import { UserPlus, Users, Save, CheckCircle2, AlertCircle, X, Moon, Sun } from 'lucide-react';
+import { UserPlus, Users, Save, CheckCircle2, AlertCircle, X, Moon, Sun, ArrowLeft, Layout as LayoutIcon } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 export function Settings() {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const from = searchParams.get('from');
+
+    const handleBack = () => {
+        if (from === 'transport') {
+            navigate('/transport/dashboard');
+        } else if (from === 'budget') {
+            navigate('/budget/settings');
+        } else if (from === 'personal') {
+            navigate('/personal/dashboard');
+        } else {
+            navigate('/');
+        }
+    };
+
     const { updatePassword } = useAuth();
     const { activeWorkspaceId } = useWorkspace();
     const { theme, setTheme } = useTheme();
@@ -102,10 +119,40 @@ export function Settings() {
     };
 
     return (
-        <div className="max-w-3xl mx-auto pb-12">
-            <h2 className="text-2xl font-bold mb-8" style={{ color: 'var(--ff-text-primary)' }}>
-                Settings
-            </h2>
+        <div className="min-h-screen flex flex-col" style={{ background: 'var(--ff-bg)' }}>
+            {/* Top Navigation Bar */}
+            <header className="sticky top-0 z-30 border-b flex items-center justify-between px-6 py-4"
+                style={{ borderColor: 'var(--ff-border)', background: 'var(--ff-surface)' }}>
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={handleBack}
+                        className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white flex items-center justify-center"
+                        title="Go back"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                        <h1 className="text-lg font-bold tracking-tight" style={{ color: 'var(--ff-text-primary)' }}>
+                            Workspace & Account Settings
+                        </h1>
+                        <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>
+                            Manage workspace name, members, security, and preferences.
+                        </p>
+                    </div>
+                </div>
+                <button 
+                    onClick={() => navigate('/')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border hover:bg-black/5 dark:hover:bg-white/5"
+                    style={{ borderColor: 'var(--ff-border)', color: 'var(--ff-text-muted)' }}
+                >
+                    <LayoutIcon size={14} /> Back to Launcher
+                </button>
+            </header>
+
+            {/* Main Content Area */}
+            <main className="flex-1 overflow-y-auto px-6 py-8">
+                <div className="max-w-3xl mx-auto pb-12">
+
 
             {/* Account Settings */}
             <div className="mb-8 p-6 rounded-2xl border" style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}>
@@ -380,6 +427,8 @@ export function Settings() {
                 onClose={() => setShowInviteModal(false)}
                 onSuccess={() => { fetchMembers(); fetchAccessCodes(); }}
             />
+                </div>
+            </main>
         </div>
     );
 }

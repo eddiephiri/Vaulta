@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, Trash2, Pencil, X, CreditCard, Tag, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Trash2, Pencil, X, CreditCard, Tag, Check, Settings as SettingsIcon } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
 import { useBudgetAccounts } from '../../hooks/budget/useBudgetAccounts';
 import { useBudgetCategories } from '../../hooks/budget/useBudgetCategories';
@@ -33,6 +34,7 @@ const emptyAccountForm = (): AccountForm => ({ name: '', type: 'bank', color: '#
 const emptyCategoryForm = (): CategoryForm => ({ name: '', type: 'expense', color: '#ef4444' });
 
 export function BudgetSettings() {
+    const navigate = useNavigate();
     const { canEditApp } = useWorkspace();
     const { accounts, addAccount, updateAccount, deleteAccount } = useBudgetAccounts();
     const { incomeCategories, expenseCategories, addCategory, updateCategory, deleteCategory } = useBudgetCategories();
@@ -163,6 +165,17 @@ export function BudgetSettings() {
                         {tab.label}
                     </button>
                 ))}
+                <button
+                    onClick={() => navigate('/settings?from=budget')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                    style={{
+                        background: 'transparent',
+                        border: 'none',
+                    }}
+                >
+                    <SettingsIcon size={15} />
+                    Workspace & Security
+                </button>
             </div>
 
             {/* ═══════════════════ ACCOUNTS TAB ═══════════════════ */}

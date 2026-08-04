@@ -101,7 +101,7 @@ export function Layout() {
             <div className="border-t pt-3 pb-3" style={{ borderColor: 'var(--ff-border)' }}>
                 {!isGuest && (
                     <NavLink
-                        to={`/${app?.id || 'transport'}/settings`}
+                        to={app?.id === 'budget' ? '/budget/settings' : `/settings?from=${app?.id || 'transport'}`}
                         title={collapsed && !isMobile ? 'Settings' : undefined}
                         className={({ isActive }) =>
                             `flex items-center gap-3 mx-2 mb-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive
