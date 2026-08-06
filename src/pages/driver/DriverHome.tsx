@@ -19,7 +19,7 @@ const fmtDate = (d: string) =>
 
 export function DriverHome() {
     const { driver, loading: driverLoading, error: driverError } = useDriver();
-    const { cashings, schedule, loading, error } = useDriverCashings(driver?.vehicle_id);
+    const { cashings, schedule, loading, error, refetch } = useDriverCashings(driver?.vehicle_id);
 
     const today = new Date().toISOString().slice(0, 10);
 
@@ -29,6 +29,13 @@ export function DriverHome() {
     const [submittingSwap, setSubmittingSwap] = useState(false);
     const [swapError, setSwapError] = useState<string | null>(null);
     const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+
+    // Log Cashing states
+    const [loggingCashing, setLoggingCashing] = useState<ExpectedCashing | null>(null);
+    const [cashingAmount, setCashingAmount] = useState('');
+    const [txnId, setTxnId] = useState('');
+    const [submittingCashing, setSubmittingCashing] = useState(false);
+    const [cashingError, setCashingError] = useState<string | null>(null);
 
     const fetchPendingRequests = async () => {
         if (!driver) return;
@@ -77,6 +84,42 @@ export function DriverHome() {
             setSwappingWeek(null);
             setSwapReason('');
             fetchPendingRequests();
+        }
+    };
+
+    const handleSubmitCashing = async () => {
+        if (!driver || !loggingCashing) return;
+
+        const amount = Number(cashingAmount);
+        if (isNaN(amount) || amount <= 0 || amount > 999999.99) {
+            setCashingError('Enter a valid amount (0.01 – 999,999.99, max 2 decimal places).');
+            return;
+        }
+
+        if (!txnId.trim()) {
+            setCashingError('Airtel Money Transaction ID is required.');
+            return;
+        }
+
+        setSubmittingCashing(true);
+        setCashingError(null);
+
+        const { error: supaErr } = await supabase
+            .rpc('driver_log_cashing', {
+                p_expected_cashing_id: loggingCashing.id,
+                p_amount_zmw: amount,
+                p_reference: txnId.trim()
+            });
+
+        setSubmittingCashing(false);
+
+        if (supaErr) {
+            setCashingError(supaErr.message);
+        } else {
+            setLoggingCashing(null);
+            setCashingAmount('');
+            setTxnId('');
+            refetch();
         }
     };
 
@@ -396,6 +439,25 @@ export function DriverHome() {
                                             "{current.notes}"
                                         </p>
                                     )}
+                                    {current.status === 'pending' && (
+                                        <button
+                                            onClick={() => {
+                                                setLoggingCashing(current);
+                                                setCashingAmount('');
+                                                setTxnId('');
+                                                setCashingError(null);
+                                            }}
+                                            className="mt-3 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-transform active:scale-95 shadow-sm"
+                                            style={{
+                                                background: urgencyColor,
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            <Banknote size={14} />
+                                            Log This Cashing
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -594,6 +656,111 @@ export function DriverHome() {
                                 color: 'white', border: 'none',
                             }}>{submittingSwap ? 'Submitting…' : 'Submit Request'}</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Log Cashing Modal */}
+            {loggingCashing && (
+                <div onClick={() => setLoggingCashing(null)} style={{
+                    position: 'fixed', inset: 0, zIndex: 50,
+                    background: 'rgba(0,0,0,0.6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: 16,
+                }}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        background: 'var(--ff-surface)',
+                        border: '1px solid var(--ff-border)',
+                        borderRadius: 16, width: '100%', maxWidth: 'min(380px, 95vw)', padding: '24px 20px',
+                        boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+                        maxHeight: '90vh', overflowY: 'auto',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ff-text-primary)' }}>
+                                Log Weekly Cashing
+                            </h2>
+                            <button onClick={() => setLoggingCashing(null)} style={{ background: 'none', border: 'none', color: 'var(--ff-text-muted)', padding: 4 }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {cashingError && (
+                            <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 8, background: '#ef444420', color: '#ef4444', border: '1px solid #ef444440', fontSize: 12 }}>
+                                {cashingError}
+                            </div>
+                        )}
+
+                        <div style={{ marginBottom: 16 }}>
+                            <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>
+                                Period: <strong>Week {loggingCashing.week_number}</strong> ({fmtDate(loggingCashing.expected_date)})
+                            </p>
+                        </div>
+
+                        <form onSubmit={e => { e.preventDefault(); handleSubmitCashing(); }} className="flex flex-col gap-4">
+                            <div>
+                                <label className="block text-[11px] mb-1.5 font-bold uppercase tracking-wider" style={{ color: 'var(--ff-text-muted)' }}>
+                                    Amount (ZMW) *
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    style={{
+                                        background: 'var(--ff-surface)',
+                                        color: 'var(--ff-text-primary)',
+                                        border: '1px solid var(--ff-border)',
+                                        borderRadius: 8,
+                                        padding: '8px 10px',
+                                        fontSize: 13,
+                                        width: '100%',
+                                        outline: 'none',
+                                        boxSizing: 'border-box',
+                                    }}
+                                    placeholder="Enter cashing amount, e.g. 1500"
+                                    value={cashingAmount}
+                                    onChange={e => setCashingAmount(e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-[11px] mb-1.5 font-bold uppercase tracking-wider" style={{ color: 'var(--ff-text-muted)' }}>
+                                    Airtel Money Transaction ID *
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    style={{
+                                        background: 'var(--ff-surface)',
+                                        color: 'var(--ff-text-primary)',
+                                        border: '1px solid var(--ff-border)',
+                                        borderRadius: 8,
+                                        padding: '8px 10px',
+                                        fontSize: 13,
+                                        width: '100%',
+                                        outline: 'none',
+                                        boxSizing: 'border-box',
+                                    }}
+                                    placeholder="Enter Txn ID, e.g. AP260805..."
+                                    value={txnId}
+                                    onChange={e => setTxnId(e.target.value)}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                                <button type="button" onClick={() => setLoggingCashing(null)} style={{
+                                    flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13,
+                                    background: 'var(--ff-surface)', color: 'var(--ff-text-muted)',
+                                    border: '1px solid var(--ff-border)',
+                                    cursor: 'pointer',
+                                }}>Cancel</button>
+                                <button type="submit" disabled={submittingCashing} style={{
+                                    flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13,
+                                    fontWeight: 600, background: submittingCashing ? '#334155' : 'var(--ff-accent)',
+                                    color: 'white', border: 'none',
+                                    cursor: 'pointer',
+                                }}>{submittingCashing ? 'Logging…' : 'Submit Cashing'}</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
