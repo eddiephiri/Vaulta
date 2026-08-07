@@ -44,7 +44,7 @@ function getLastNMonths(n: number): string[] {
     const d = new Date();
     for (let i = n - 1; i >= 0; i--) {
         const dd = new Date(d.getFullYear(), d.getMonth() - i, 1);
-        months.push(dd.toISOString().slice(0, 7));
+        months.push(`${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, '0')}`);
     }
     return months;
 }
