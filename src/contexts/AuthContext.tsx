@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const resetPassword = async (email: string) => {
-        const baseUrl = import.meta.env.PROD ? 'https://myvaultr.com' : window.location.origin;
+        const baseUrl = window.location.origin;
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
             redirectTo: `${baseUrl}/reset-password`,
         });
