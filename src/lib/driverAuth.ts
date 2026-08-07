@@ -24,7 +24,7 @@ export function normalizeDriverPhone(raw: string): string {
         p = '+260' + p;
     }
     if (!/^\+\d{10,15}$/.test(p)) {
-        throw new Error('Enter a valid phone number, e.g. +260977000000 or 0977000000.');
+        throw new Error('Enter a valid phone number, e.g. +260978699706 or 0978699706.');
     }
     return p;
 }

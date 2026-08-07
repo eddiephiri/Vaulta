@@ -21,7 +21,7 @@ function normalizePhone(raw: string): string {
     p = '+260' + p                 // bare local without leading 0
   }
   if (!/^\+\d{10,15}$/.test(p)) {
-    throw new Error(`"${raw}" is not a valid phone number. Use international format, e.g. +260977000000.`)
+    throw new Error(`"${raw}" is not a valid phone number. Use international format, e.g. +260978699706.`)
   }
   return p
 }

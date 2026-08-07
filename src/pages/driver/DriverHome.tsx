@@ -572,12 +572,12 @@ export function DriverHome() {
                     </div>
                 </div>
                 <div className="flex gap-2 mt-1">
-                    <a href="tel:+260977000000"
+                    <a href="tel:+260978699706"
                         className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold border transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 select-none text-center"
                         style={{ borderColor: 'var(--ff-border)', color: 'var(--ff-text-primary)', textDecoration: 'none' }}>
                         <Phone size={14} /> Call Manager
                     </a>
-                    <a href="https://wa.me/260977000000" target="_blank" rel="noopener noreferrer"
+                    <a href="https://wa.me/260978699706" target="_blank" rel="noopener noreferrer"
                         className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90 select-none text-center"
                         style={{ background: '#25D366', textDecoration: 'none' }}>
                         <MessageSquare size={14} /> WhatsApp Support
