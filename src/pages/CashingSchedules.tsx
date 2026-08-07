@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, CalendarClock, RefreshCw, ArrowLeftRight, Banknote } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, CalendarClock, RefreshCw, ArrowLeftRight, Banknote, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/PageHeader';
 import { useCashingSchedules } from '../hooks/useCashingSchedules';
@@ -29,6 +29,33 @@ const SOURCE_COLORS: Record<string, string> = {
     rental: '#10b981',
     other: '#94a3b8',
 };
+
+function ymOf(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function currentMonth(): string {
+    return ymOf(new Date());
+}
+
+function monthLabel(ym: string): string {
+    const [y, m] = ym.split('-');
+    return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en', { month: 'long', year: 'numeric' });
+}
+
+function shiftMonthStr(ym: string, delta: number): string {
+    const [y, m] = ym.split('-').map(Number);
+    return ymOf(new Date(y, m - 1 + delta, 1));
+}
+
+function cashingStatusMeta(c: ExpectedCashing, today: string): { label: string; color: string } {
+    if (c.status === 'recorded' || c.status === 'late_admin') return { label: 'Collected', color: '#22c55e' };
+    if (c.status === 'late_driver') return { label: 'Missed', color: '#ef4444' };
+    if (c.status === 'deferred_to_salary') return { label: 'Deferred to Salary', color: '#a855f7' };
+    if (c.expected_date < today) return { label: 'Overdue', color: '#f59e0b' };
+    if (c.expected_date === today) return { label: 'Due Today', color: '#3b82f6' };
+    return { label: 'Upcoming', color: '#94a3b8' };
+}
 
 const getCurrentCycleCashings = (vCashings: ExpectedCashing[], cycleWeeks: number) => {
     if (!vCashings.length) return [];
@@ -67,6 +94,28 @@ export function CashingSchedules() {
     } | null>(null);
 
     const [clearingOverdue, setClearingOverdue] = useState(false);
+
+    // Monthly cashing overview
+    const [cashingMonth, setCashingMonth] = useState<string>(() => currentMonth());
+    const [monthCashingsExpanded, setMonthCashingsExpanded] = useState(false);
+
+    const monthCashings = useMemo(
+        () => cashings
+            .filter(c => c.expected_date.startsWith(cashingMonth))
+            .sort((a, b) => a.expected_date.localeCompare(b.expected_date)),
+        [cashings, cashingMonth]
+    );
+
+    const monthCounts = useMemo(() => {
+        const counts = { collected: 0, pending: 0, missed: 0, deferred: 0 };
+        monthCashings.forEach(c => {
+            if (c.status === 'recorded' || c.status === 'late_admin') counts.collected++;
+            else if (c.status === 'late_driver') counts.missed++;
+            else if (c.status === 'deferred_to_salary') counts.deferred++;
+            else counts.pending++;
+        });
+        return counts;
+    }, [monthCashings]);
 
     // Swap requests states
     const [swapRequests, setSwapRequests] = useState<any[]>([]);
@@ -297,6 +346,130 @@ export function CashingSchedules() {
                     )}
                 </div>
             )}
+
+            {/* This Month's Cashings */}
+            <div className="mb-6 rounded-xl" style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
+                <div className="p-4">
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                        <p className="text-sm font-bold" style={{ color: 'var(--ff-text-primary)' }}>
+                            This Month's Cashings
+                        </p>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setCashingMonth(m => shiftMonthStr(m, -1))}
+                                title="Previous month"
+                                className="flex items-center justify-center rounded-lg touch-target"
+                                style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <p className="text-xs font-semibold w-[130px] text-center" style={{ color: 'var(--ff-text-primary)' }}>
+                                {monthLabel(cashingMonth)}
+                            </p>
+                            <button
+                                onClick={() => setCashingMonth(m => shiftMonthStr(m, 1))}
+                                title="Next month"
+                                className="flex items-center justify-center rounded-lg touch-target"
+                                style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                            { label: 'Collected', value: monthCounts.collected, color: '#22c55e' },
+                            { label: 'Pending', value: monthCounts.pending, color: '#f59e0b' },
+                            { label: 'Missed', value: monthCounts.missed, color: '#ef4444' },
+                            { label: 'Deferred', value: monthCounts.deferred, color: '#a855f7' },
+                        ].map(s => (
+                            <div key={s.label} className="text-center rounded-lg p-2" style={{ background: 'var(--ff-bg)' }}>
+                                <p className="text-lg font-bold" style={{ color: s.color }}>{s.value}</p>
+                                <p className="text-[11px]" style={{ color: 'var(--ff-text-muted)' }}>{s.label}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {monthCashings.length > 0 && (
+                        <button
+                            onClick={() => setMonthCashingsExpanded(!monthCashingsExpanded)}
+                            className="mt-4 text-xs font-medium px-3 py-1.5 rounded-lg w-full text-center transition-colors"
+                            style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-muted)' }}
+                        >
+                            {monthCashingsExpanded ? 'Hide' : 'Show'} all {monthCashings.length} cashing{monthCashings.length !== 1 ? 's' : ''} for {monthLabel(cashingMonth)}
+                        </button>
+                    )}
+                </div>
+
+                {monthCashingsExpanded && (
+                    <div className="border-t px-4 pb-4" style={{ borderColor: 'var(--ff-border)' }}>
+                        {monthCashings.length === 0 ? (
+                            <p className="text-sm py-4 text-center" style={{ color: 'var(--ff-text-muted)' }}>
+                                No cashings scheduled for {monthLabel(cashingMonth)}.
+                            </p>
+                        ) : (
+                            <div className="space-y-2 mt-3 max-h-[320px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+                                {monthCashings.map(c => {
+                                    const today = new Date().toISOString().slice(0, 10);
+                                    const meta = cashingStatusMeta(c, today);
+                                    const isActionable = canEditApp('transport') && c.status === 'pending';
+                                    return (
+                                        <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg"
+                                            style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)' }}>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-semibold" style={{ color: 'var(--ff-text-primary)' }}>
+                                                        {c.vehicle?.plate} — {c.vehicle?.make} {c.vehicle?.model}
+                                                    </p>
+                                                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                                        style={{ background: `${meta.color}20`, color: meta.color }}>
+                                                        {meta.label}
+                                                    </span>
+                                                    {c.is_salary_week && (
+                                                        <span className="px-1.5 py-0.5 rounded text-xs flex items-center gap-1"
+                                                            style={{ background: '#a855f720', color: '#a855f7' }}>
+                                                            <Banknote size={10} /> Salary
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs mt-1" style={{ color: 'var(--ff-text-muted)' }}>
+                                                    Expected {c.expected_date} · Week {c.week_number}
+                                                </p>
+                                            </div>
+                                            {isActionable ? (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setIncomePrefill({
+                                                            vehicle_id: c.vehicle_id,
+                                                            expected_cashing_id: c.id,
+                                                            expected_date: c.expected_date,
+                                                            is_salary_week: c.is_salary_week,
+                                                        })}
+                                                        className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
+                                                        style={{ background: 'var(--ff-green)', color: 'white' }}
+                                                    >
+                                                        Log Income
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setResolvingCashing(c)}
+                                                        className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors hover:opacity-80"
+                                                        style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                                                    >
+                                                        Resolve Manually
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <CheckCircle2 size={18} style={{ color: 'var(--ff-border)' }} className="hidden sm:block" />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {schedError && (
                 <div className="mb-4 p-4 rounded-lg text-sm"
