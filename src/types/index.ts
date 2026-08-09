@@ -137,7 +137,7 @@ export interface ExpectedCashing {
     expected_date: string;
     is_salary_week: boolean;
     week_number: number;
-    income_record_id?: string | null;
+    transaction_id?: string | null;
     status: CashingStatus;
     notes?: string;
     created_at: string;

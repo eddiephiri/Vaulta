@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, CalendarClock, RefreshCw, ArrowLeftRight, Banknote, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Plus, CalendarClock, RefreshCw, ArrowLeftRight, Banknote, ChevronLeft, ChevronRight, CheckCircle2, Check, List, Grid3x3 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/PageHeader';
 import { useCashingSchedules } from '../hooks/useCashingSchedules';
 import { useExpectedCashings } from '../hooks/useExpectedCashings';
 import { useVehicles } from '../hooks/useVehicles';
 import { useDrivers } from '../hooks/useDrivers';
+import { useIncome } from '../hooks/useIncome';
 import { AddCashingScheduleModal } from '../components/AddCashingScheduleModal';
 import { AddIncomeModal } from '../components/AddIncomeModal';
 import { ResolveCashingModal } from '../components/ResolveCashingModal';
@@ -48,6 +49,18 @@ function shiftMonthStr(ym: string, delta: number): string {
     return ymOf(new Date(y, m - 1 + delta, 1));
 }
 
+/** Padded grid of ISO date strings (or null for leading/trailing blanks) covering the given month, Sun-first. */
+function buildCalendarCells(ym: string): (string | null)[] {
+    const [y, m] = ym.split('-').map(Number);
+    const startWeekday = new Date(y, m - 1, 1).getDay();
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const cells: (string | null)[] = [];
+    for (let i = 0; i < startWeekday; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(`${ym}-${String(d).padStart(2, '0')}`);
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
+}
+
 function cashingStatusMeta(c: ExpectedCashing, today: string): { label: string; color: string } {
     if (c.status === 'recorded' || c.status === 'late_admin') return { label: 'Collected', color: '#22c55e' };
     if (c.status === 'late_driver') return { label: 'Missed', color: '#ef4444' };
@@ -80,6 +93,7 @@ export function CashingSchedules() {
     const { cashings, overdue, loading: overdueLoading, refetch: refetchOverdue } = useExpectedCashings();
     const { vehicles } = useVehicles();
     const { drivers } = useDrivers();   // all drivers for hire-date lookup
+    const { records: incomeRecords } = useIncome();   // all vehicles — used to resolve actual "cashed" dates
     const [searchQuery, setSearchQuery] = useState('');
     const [swappingVehicle, setSwappingVehicle] = useState<{ id: string; plate: string } | null>(null);
 
@@ -98,12 +112,16 @@ export function CashingSchedules() {
     // Monthly cashing overview
     const [cashingMonth, setCashingMonth] = useState<string>(() => currentMonth());
     const [monthCashingsExpanded, setMonthCashingsExpanded] = useState(false);
+    const [cashingView, setCashingView] = useState<'list' | 'calendar'>('list');
+    const [cashingVehicleFilter, setCashingVehicleFilter] = useState('');
+    const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
     const monthCashings = useMemo(
         () => cashings
             .filter(c => c.expected_date.startsWith(cashingMonth))
+            .filter(c => !cashingVehicleFilter || c.vehicle_id === cashingVehicleFilter)
             .sort((a, b) => a.expected_date.localeCompare(b.expected_date)),
-        [cashings, cashingMonth]
+        [cashings, cashingMonth, cashingVehicleFilter]
     );
 
     const monthCounts = useMemo(() => {
@@ -116,6 +134,32 @@ export function CashingSchedules() {
         });
         return counts;
     }, [monthCashings]);
+
+    // Actual recorded date per cashing (may differ from expected_date when paid late/early)
+    const transactionDateById = useMemo(
+        () => new Map(incomeRecords.map(r => [r.id, r.date])),
+        [incomeRecords]
+    );
+
+    const calendarCells = useMemo(() => buildCalendarCells(cashingMonth), [cashingMonth]);
+
+    const dayEvents = useMemo(() => {
+        const map = new Map<string, { type: 'expected' | 'cashed'; cashing: ExpectedCashing; label: string; color: string }[]>();
+        const add = (date: string, ev: { type: 'expected' | 'cashed'; cashing: ExpectedCashing; label: string; color: string }) => {
+            if (!map.has(date)) map.set(date, []);
+            map.get(date)!.push(ev);
+        };
+        const today = new Date().toISOString().slice(0, 10);
+        monthCashings.forEach(c => {
+            const meta = cashingStatusMeta(c, today);
+            add(c.expected_date, { type: 'expected', cashing: c, ...meta });
+            const actualDate = c.transaction_id ? transactionDateById.get(c.transaction_id) : undefined;
+            if (actualDate && actualDate !== c.expected_date && actualDate.startsWith(cashingMonth)) {
+                add(actualDate, { type: 'cashed', cashing: c, label: 'Cashed', color: '#22c55e' });
+            }
+        });
+        return map;
+    }, [monthCashings, transactionDateById, cashingMonth]);
 
     // Swap requests states
     const [swapRequests, setSwapRequests] = useState<any[]>([]);
@@ -170,6 +214,62 @@ export function CashingSchedules() {
     });
 
     const { currentPage, totalPages, setCurrentPage, paginatedItems } = usePagination(filteredSchedules, 10);
+
+    const renderCashingRow = (c: ExpectedCashing) => {
+        const today = new Date().toISOString().slice(0, 10);
+        const meta = cashingStatusMeta(c, today);
+        const isActionable = canEditApp('transport') && c.status === 'pending';
+        return (
+            <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg"
+                style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)' }}>
+                <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold" style={{ color: 'var(--ff-text-primary)' }}>
+                            {c.vehicle?.plate} — {c.vehicle?.make} {c.vehicle?.model}
+                        </p>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                            style={{ background: `${meta.color}20`, color: meta.color }}>
+                            {meta.label}
+                        </span>
+                        {c.is_salary_week && (
+                            <span className="px-1.5 py-0.5 rounded text-xs flex items-center gap-1"
+                                style={{ background: '#a855f720', color: '#a855f7' }}>
+                                <Banknote size={10} /> Salary
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-xs mt-1" style={{ color: 'var(--ff-text-muted)' }}>
+                        Expected {c.expected_date} · Week {c.week_number}
+                    </p>
+                </div>
+                {isActionable ? (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIncomePrefill({
+                                vehicle_id: c.vehicle_id,
+                                expected_cashing_id: c.id,
+                                expected_date: c.expected_date,
+                                is_salary_week: c.is_salary_week,
+                            })}
+                            className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
+                            style={{ background: 'var(--ff-green)', color: 'white' }}
+                        >
+                            Log Income
+                        </button>
+                        <button
+                            onClick={() => setResolvingCashing(c)}
+                            className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors hover:opacity-80"
+                            style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                        >
+                            Resolve Manually
+                        </button>
+                    </div>
+                ) : (
+                    <CheckCircle2 size={18} style={{ color: 'var(--ff-border)' }} className="hidden sm:block" />
+                )}
+            </div>
+        );
+    };
 
     return (
         <div>
@@ -350,32 +450,72 @@ export function CashingSchedules() {
             {/* This Month's Cashings */}
             <div className="mb-6 rounded-xl" style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)' }}>
                 <div className="p-4">
-                    <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                         <p className="text-sm font-bold" style={{ color: 'var(--ff-text-primary)' }}>
                             This Month's Cashings
                         </p>
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={() => setCashingMonth(m => shiftMonthStr(m, -1))}
-                                title="Previous month"
-                                className="flex items-center justify-center rounded-lg touch-target"
-                                style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
-                            >
-                                <ChevronLeft size={16} />
-                            </button>
-                            <p className="text-xs font-semibold w-[130px] text-center" style={{ color: 'var(--ff-text-primary)' }}>
-                                {monthLabel(cashingMonth)}
-                            </p>
-                            <button
-                                onClick={() => setCashingMonth(m => shiftMonthStr(m, 1))}
-                                title="Next month"
-                                className="flex items-center justify-center rounded-lg touch-target"
-                                style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
-                            >
-                                <ChevronRight size={16} />
-                            </button>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setCashingView('list')}
+                                    title="List view"
+                                    className="flex items-center justify-center rounded-lg touch-target"
+                                    style={{
+                                        background: cashingView === 'list' ? 'var(--ff-accent)' : 'var(--ff-bg)',
+                                        border: '1px solid var(--ff-border)',
+                                        color: cashingView === 'list' ? 'white' : 'var(--ff-text-muted)',
+                                    }}
+                                >
+                                    <List size={16} />
+                                </button>
+                                <button
+                                    onClick={() => setCashingView('calendar')}
+                                    title="Calendar view"
+                                    className="flex items-center justify-center rounded-lg touch-target"
+                                    style={{
+                                        background: cashingView === 'calendar' ? 'var(--ff-accent)' : 'var(--ff-bg)',
+                                        border: '1px solid var(--ff-border)',
+                                        color: cashingView === 'calendar' ? 'white' : 'var(--ff-text-muted)',
+                                    }}
+                                >
+                                    <Grid3x3 size={16} />
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => { setCashingMonth(m => shiftMonthStr(m, -1)); setSelectedDay(null); }}
+                                    title="Previous month"
+                                    className="flex items-center justify-center rounded-lg touch-target"
+                                    style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
+                                >
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <p className="text-xs font-semibold w-[130px] text-center" style={{ color: 'var(--ff-text-primary)' }}>
+                                    {monthLabel(cashingMonth)}
+                                </p>
+                                <button
+                                    onClick={() => { setCashingMonth(m => shiftMonthStr(m, 1)); setSelectedDay(null); }}
+                                    title="Next month"
+                                    className="flex items-center justify-center rounded-lg touch-target"
+                                    style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)', color: 'var(--ff-text-primary)' }}
+                                >
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
                         </div>
                     </div>
+
+                    <select
+                        value={cashingVehicleFilter}
+                        onChange={e => { setCashingVehicleFilter(e.target.value); setSelectedDay(null); }}
+                        className="text-sm px-3 py-2 rounded-lg w-full sm:w-auto mb-4"
+                        style={{ background: 'var(--ff-bg)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
+                    >
+                        <option value="">All Vehicles</option>
+                        {vehicles.map(v => (
+                            <option key={v.id} value={v.id}>{v.plate} — {v.make} {v.model}</option>
+                        ))}
+                    </select>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
@@ -391,7 +531,7 @@ export function CashingSchedules() {
                         ))}
                     </div>
 
-                    {monthCashings.length > 0 && (
+                    {cashingView === 'list' && monthCashings.length > 0 && (
                         <button
                             onClick={() => setMonthCashingsExpanded(!monthCashingsExpanded)}
                             className="mt-4 text-xs font-medium px-3 py-1.5 rounded-lg w-full text-center transition-colors"
@@ -402,7 +542,7 @@ export function CashingSchedules() {
                     )}
                 </div>
 
-                {monthCashingsExpanded && (
+                {cashingView === 'list' && monthCashingsExpanded && (
                     <div className="border-t px-4 pb-4" style={{ borderColor: 'var(--ff-border)' }}>
                         {monthCashings.length === 0 ? (
                             <p className="text-sm py-4 text-center" style={{ color: 'var(--ff-text-muted)' }}>
@@ -410,61 +550,81 @@ export function CashingSchedules() {
                             </p>
                         ) : (
                             <div className="space-y-2 mt-3 max-h-[320px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
-                                {monthCashings.map(c => {
-                                    const today = new Date().toISOString().slice(0, 10);
-                                    const meta = cashingStatusMeta(c, today);
-                                    const isActionable = canEditApp('transport') && c.status === 'pending';
-                                    return (
-                                        <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg"
-                                            style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)' }}>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-sm font-semibold" style={{ color: 'var(--ff-text-primary)' }}>
-                                                        {c.vehicle?.plate} — {c.vehicle?.make} {c.vehicle?.model}
-                                                    </p>
-                                                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                                        style={{ background: `${meta.color}20`, color: meta.color }}>
-                                                        {meta.label}
-                                                    </span>
-                                                    {c.is_salary_week && (
-                                                        <span className="px-1.5 py-0.5 rounded text-xs flex items-center gap-1"
-                                                            style={{ background: '#a855f720', color: '#a855f7' }}>
-                                                            <Banknote size={10} /> Salary
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="text-xs mt-1" style={{ color: 'var(--ff-text-muted)' }}>
-                                                    Expected {c.expected_date} · Week {c.week_number}
-                                                </p>
-                                            </div>
-                                            {isActionable ? (
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => setIncomePrefill({
-                                                            vehicle_id: c.vehicle_id,
-                                                            expected_cashing_id: c.id,
-                                                            expected_date: c.expected_date,
-                                                            is_salary_week: c.is_salary_week,
-                                                        })}
-                                                        className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
-                                                        style={{ background: 'var(--ff-green)', color: 'white' }}
-                                                    >
-                                                        Log Income
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setResolvingCashing(c)}
-                                                        className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors hover:opacity-80"
-                                                        style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
-                                                    >
-                                                        Resolve Manually
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <CheckCircle2 size={18} style={{ color: 'var(--ff-border)' }} className="hidden sm:block" />
+                                {monthCashings.map(renderCashingRow)}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {cashingView === 'calendar' && (
+                    <div className="border-t px-4 pb-4 pt-4" style={{ borderColor: 'var(--ff-border)' }}>
+                        <div className="grid grid-cols-7 gap-1 mb-1">
+                            {DAYS.map(d => (
+                                <div key={d} className="text-center text-[10px] font-bold uppercase tracking-wide py-1"
+                                    style={{ color: 'var(--ff-text-muted)' }}>
+                                    {d}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="grid grid-cols-7 gap-1">
+                            {calendarCells.map((date, idx) => {
+                                if (!date) return <div key={idx} />;
+                                const events = dayEvents.get(date) ?? [];
+                                const dayNum = Number(date.slice(-2));
+                                const todayIso = new Date().toISOString().slice(0, 10);
+                                const isToday = date === todayIso;
+                                const isSelected = date === selectedDay;
+                                const visible = events.slice(0, 4);
+                                return (
+                                    <button
+                                        key={date}
+                                        onClick={() => events.length > 0 && setSelectedDay(isSelected ? null : date)}
+                                        className="aspect-square rounded-lg p-1 flex flex-col items-center transition-colors"
+                                        style={{
+                                            background: isSelected ? 'color-mix(in srgb, var(--ff-accent) 12%, transparent)' : 'var(--ff-bg)',
+                                            border: isToday ? '1px solid var(--ff-accent)' : '1px solid var(--ff-border)',
+                                            cursor: events.length > 0 ? 'pointer' : 'default',
+                                        }}
+                                    >
+                                        <span className="text-[11px] font-medium mt-0.5"
+                                            style={{ color: isToday ? 'var(--ff-accent)' : 'var(--ff-text-primary)' }}>
+                                            {dayNum}
+                                        </span>
+                                        <div className="flex flex-wrap items-center justify-center gap-0.5 mt-1">
+                                            {visible.map((ev, i) => (
+                                                ev.type === 'cashed'
+                                                    ? <Check key={i} size={9} strokeWidth={3} style={{ color: ev.color }} />
+                                                    : <span key={i} className="rounded-full" style={{ width: 6, height: 6, background: ev.color }} />
+                                            ))}
+                                            {events.length > 4 && (
+                                                <span className="text-[8px] font-bold" style={{ color: 'var(--ff-text-muted)' }}>
+                                                    +{events.length - 4}
+                                                </span>
                                             )}
                                         </div>
-                                    );
-                                })}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-4 text-[11px]" style={{ color: 'var(--ff-text-muted)' }}>
+                            <span className="flex items-center gap-1.5"><span className="rounded-full" style={{ width: 6, height: 6, background: '#94a3b8' }} /> Upcoming</span>
+                            <span className="flex items-center gap-1.5"><span className="rounded-full" style={{ width: 6, height: 6, background: '#f59e0b' }} /> Overdue</span>
+                            <span className="flex items-center gap-1.5"><span className="rounded-full" style={{ width: 6, height: 6, background: '#ef4444' }} /> Missed</span>
+                            <span className="flex items-center gap-1.5"><span className="rounded-full" style={{ width: 6, height: 6, background: '#22c55e' }} /> Collected</span>
+                            <span className="flex items-center gap-1.5"><span className="rounded-full" style={{ width: 6, height: 6, background: '#a855f7' }} /> Deferred</span>
+                            <span className="flex items-center gap-1.5"><Check size={10} strokeWidth={3} style={{ color: '#22c55e' }} /> Actually cashed</span>
+                        </div>
+
+                        {selectedDay && (
+                            <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--ff-border)' }}>
+                                <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--ff-text-muted)' }}>
+                                    {new Date(selectedDay + 'T00:00:00').toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                </p>
+                                <div className="space-y-2">
+                                    {Array.from(new Map((dayEvents.get(selectedDay) ?? []).map(ev => [ev.cashing.id, ev.cashing])).values())
+                                        .map(renderCashingRow)}
+                                </div>
                             </div>
                         )}
                     </div>
