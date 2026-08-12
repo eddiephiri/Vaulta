@@ -47,6 +47,23 @@ export interface Vehicle {
     updated_at: string;
 }
 
+// ─── Odometer Readings ───────────────────────────────────────────────────────
+
+export interface OdometerReading {
+    id: string;
+    workspace_id: string;
+    vehicle_id: string;
+    driver_id: string;
+    reading_km: number;
+    photo_url?: string | null;
+    notes?: string | null;
+    iso_week: string;          // e.g. '2026-W32'
+    submitted_at: string;
+    // Joined for admin view
+    vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model'>;
+    driver?: Pick<Driver, 'id' | 'name'>;
+}
+
 // ─── Drivers ─────────────────────────────────────────────────────────────────
 
 export interface Driver {
@@ -59,7 +76,7 @@ export interface Driver {
     license_number?: string;
     nrc_number?: string;
     vehicle_id?: string;
-    vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model'>;
+    vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model' | 'odometer_km'>;
     salary_zmw: number;
     hire_date?: string;
     active: boolean;

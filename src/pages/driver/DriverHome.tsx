@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useDriver } from '../../contexts/DriverContext';
 import { useDriverCashings } from '../../hooks/useDriverCashings';
 import { EnableNotificationsButton } from '../../components/EnableNotificationsButton';
+import { OdometerReminderCard } from '../../components/OdometerReminderCard';
 import type { CashingStatus, ExpectedCashing } from '../../types';
 
 const STATUS_META: Record<CashingStatus, { label: string; color: string }> = {
@@ -228,9 +229,10 @@ export function DriverHome() {
                 <div className="p-3 rounded-lg text-sm" style={{ background: '#ef444420', color: '#ef4444' }}>{error}</div>
             )}
 
-            <div className="rounded-xl p-4 border" style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}>
-                <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--ff-text-muted)' }}>Reminders</p>
+            <div className="rounded-xl p-4 border flex flex-col gap-3" style={{ background: 'var(--ff-surface)', borderColor: 'var(--ff-border)' }}>
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--ff-text-muted)' }}>Reminders</p>
                 <EnableNotificationsButton />
+                {driver && driver.active && driver.vehicle_id && <OdometerReminderCard driver={driver} />}
             </div>
 
             {/* This week schedule details / loading state */}

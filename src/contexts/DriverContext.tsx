@@ -29,7 +29,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
 
         const { data, error: err } = await supabase
             .from('drivers')
-            .select('*, vehicle:vehicles(id, plate, make, model)')
+            .select('*, vehicle:vehicles(id, plate, make, model, odometer_km)')
             .eq('user_id', user.id)
             .maybeSingle();
 
