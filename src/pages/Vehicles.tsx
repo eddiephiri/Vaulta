@@ -287,19 +287,21 @@ export function Vehicles() {
 
             {/* Tabs */}
             <div
-                className="flex gap-1 p-1 rounded-xl mb-6"
-                style={{ background: 'var(--ff-surface)', border: '1px solid var(--ff-border)', display: 'inline-flex' }}
+                className="flex gap-0 mb-6"
+                style={{ borderBottom: '2px solid var(--ff-border)' }}
             >
                 {tabs.map(t => (
                     <button
                         key={t.key}
                         id={`vehicles-tab-${t.key}`}
                         onClick={() => setActiveTab(t.key)}
-                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
+                        className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-all relative"
                         style={{
-                            background: activeTab === t.key ? 'var(--ff-accent)' : 'transparent',
-                            color: activeTab === t.key ? 'white' : 'var(--ff-text-muted)',
+                            background: 'transparent',
+                            color: activeTab === t.key ? 'var(--ff-accent)' : 'var(--ff-text-muted)',
                             border: 'none',
+                            borderBottom: activeTab === t.key ? '2px solid var(--ff-accent)' : '2px solid transparent',
+                            marginBottom: '-2px',
                             cursor: 'pointer',
                         }}
                     >
@@ -308,6 +310,7 @@ export function Vehicles() {
                     </button>
                 ))}
             </div>
+
 
             {/* ─── Fleet tab ──────────────────────────────────────────────── */}
             {activeTab === 'fleet' && (
