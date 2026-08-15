@@ -124,25 +124,41 @@ export function DriverHome() {
         }
     };
 
-    // Current/next cashing: soonest on/after today, else the most recent past one.
+    // Current/next cashing: prefer the nearest PENDING upcoming row so that an
+    // already-completed entry never hijacks the action card. Fall back to the
+    // nearest future row of any status, then to the most recent past row.
     const current = useMemo(() => {
-        const upcoming = cashings.find(c => c.expected_date >= today);
-        return upcoming ?? (cashings.length ? cashings[cashings.length - 1] : null);
+        const pendingUpcoming = cashings.find(
+            c => c.expected_date >= today && c.status === 'pending'
+        );
+        if (pendingUpcoming) return pendingUpcoming;
+
+        const anyUpcoming = cashings.find(c => c.expected_date >= today);
+        return anyUpcoming ?? (cashings.length ? cashings[cashings.length - 1] : null);
     }, [cashings, today]);
 
-    // Current cycle expected cashings (consistent with Admin tracking cycle)
+    // Current cycle expected cashings (consistent with Admin tracking cycle).
+    // Built from the date-window that contains `current` rather than a
+    // backwards array-index walk, which broke when there were gaps or rows from
+    // prior cycles sitting earlier in the sorted array.
     const cycleCashings = useMemo(() => {
-        if (!cashings.length || !schedule) return [];
-        
-        let currentIdx = cashings.findIndex(c => c.expected_date >= today);
-        if (currentIdx === -1) currentIdx = cashings.length - 1;
-        
-        const currentCashing = cashings[currentIdx];
-        const wkNum = currentCashing.week_number;
-        
-        const startIdx = Math.max(0, currentIdx - (wkNum - 1));
-        return cashings.slice(startIdx, startIdx + schedule.cycle_weeks);
-    }, [cashings, schedule, today]);
+        if (!cashings.length || !schedule || !current) return [];
+
+        const cycleWeeks = schedule.cycle_weeks;
+        const wkNum = current.week_number;
+
+        // The cycle that contains `current` starts (wkNum - 1) weeks before it.
+        const cycleStartMs =
+            new Date(current.expected_date).getTime() - (wkNum - 1) * 7 * 86_400_000;
+        const cycleEndMs = cycleStartMs + cycleWeeks * 7 * 86_400_000 - 1;
+
+        const cycleStart = new Date(cycleStartMs).toISOString().slice(0, 10);
+        const cycleEnd   = new Date(cycleEndMs).toISOString().slice(0, 10);
+
+        return cashings
+            .filter(c => c.expected_date >= cycleStart && c.expected_date <= cycleEnd)
+            .sort((a, b) => a.week_number - b.week_number);
+    }, [cashings, schedule, current]);
 
     // On-time record: recorded = on time, late_driver = late. late_admin and
     // pending are excluded so office delays / future weeks don't count.
