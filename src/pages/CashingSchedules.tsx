@@ -73,16 +73,26 @@ function cashingStatusMeta(c: ExpectedCashing, today: string): { label: string; 
 const getCurrentCycleCashings = (vCashings: ExpectedCashing[], cycleWeeks: number) => {
     if (!vCashings.length) return [];
     const today = new Date().toISOString().slice(0, 10);
-    
-    // Find the next upcoming pending/completed cashing, or fallback to the last one
-    let currentIdx = vCashings.findIndex(c => c.expected_date >= today);
-    if (currentIdx === -1) currentIdx = vCashings.length - 1;
-    
-    const currentCashing = vCashings[currentIdx];
-    const wkNum = currentCashing.week_number;
-    
-    // Start index is currentIdx - (wkNum - 1)
-    const startIdx = Math.max(0, currentIdx - (wkNum - 1));
+
+    // Prefer the last resolved (non-pending) cashing as the anchor for the display window.
+    // This correctly shows the cycle the driver is currently IN, even if they paid late,
+    // rather than jumping forward to the next future cashing and mis-marking prior weeks as missed.
+    const lastResolved = [...vCashings].reverse().find(c => c.status !== 'pending');
+
+    let anchorIdx: number;
+    if (lastResolved) {
+        anchorIdx = vCashings.indexOf(lastResolved);
+    } else {
+        // No resolved cashings yet — find the next upcoming pending one
+        anchorIdx = vCashings.findIndex(c => c.expected_date >= today);
+        if (anchorIdx === -1) anchorIdx = vCashings.length - 1;
+    }
+
+    const anchorCashing = vCashings[anchorIdx];
+    const wkNum = anchorCashing.week_number;
+
+    // Start index is anchorIdx - (wkNum - 1)
+    const startIdx = Math.max(0, anchorIdx - (wkNum - 1));
     return vCashings.slice(startIdx, startIdx + cycleWeeks);
 };
 

@@ -149,7 +149,7 @@ export interface ExpectedCashing {
     id: string;
     workspace_id: string;
     vehicle_id: string;
-    vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model'>;
+    vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model' | 'status'>;
     schedule_id?: string;
     expected_date: string;
     is_salary_week: boolean;

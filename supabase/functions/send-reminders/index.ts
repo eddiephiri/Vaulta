@@ -86,10 +86,11 @@ serve(async (req: Request) => {
 
     const { data: due, error: dueErr } = await supabase
       .from('expected_cashings')
-      .select('id, expected_date, is_salary_week, vehicle:vehicles(plate, drivers(user_id, active))')
+      .select('id, expected_date, is_salary_week, vehicle:vehicles!inner(plate, status, drivers(user_id, active))')
       .eq('status', 'pending')
       .is('reminder_sent_at', null)
       .eq('expected_date', tomorrow)
+      .eq('vehicle.status', 'active')
     if (dueErr) throw new Error(dueErr.message)
 
     type Recipient = { cashingId: string; userId: string; plate: string; isSalary: boolean; date: string }
@@ -170,7 +171,12 @@ serve(async (req: Request) => {
     }
 
     const [overdueRes, docsRes, editsRes] = await Promise.all([
-      supabase.from('expected_cashings').select('workspace_id').eq('status', 'pending').gte('expected_date', thirtyAgo).lt('expected_date', today),
+      supabase.from('expected_cashings')
+        .select('workspace_id, vehicle:vehicles!inner(status)')
+        .eq('status', 'pending')
+        .gte('expected_date', thirtyAgo)
+        .lt('expected_date', today)
+        .eq('vehicle.status', 'active'),   // only count overdue for active vehicles
       supabase.from('driver_documents').select('workspace_id').eq('status', 'pending').eq('superseded', false),
       supabase.from('driver_profile_edits').select('workspace_id').eq('reviewed', false).eq('reverted', false),
     ])

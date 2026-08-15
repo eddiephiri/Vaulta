@@ -21,7 +21,7 @@ export function useExpectedCashings(vehicleId?: string): UseExpectedCashingsRetu
 
         let query = supabase
             .from('expected_cashings')
-            .select('*, vehicle:vehicles(id, plate, make, model)')
+            .select('*, vehicle:vehicles(id, plate, make, model, status)')
             .order('expected_date', { ascending: true });
 
         if (vehicleId) query = query.eq('vehicle_id', vehicleId);
@@ -40,7 +40,10 @@ export function useExpectedCashings(vehicleId?: string): UseExpectedCashingsRetu
 
     const today = new Date().toISOString().slice(0, 10);
     const overdue = cashings.filter(
-        c => c.status === 'pending' && c.expected_date <= today && !c.is_salary_week
+        c => c.status === 'pending'
+          && c.expected_date <= today
+          && !c.is_salary_week
+          && c.vehicle?.status === 'active'   // suppress overdue alerts for inactive vehicles
     );
 
     return { cashings, overdue, loading, error, refetch: fetchCashings };
