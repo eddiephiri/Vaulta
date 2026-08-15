@@ -10,7 +10,8 @@
 CREATE OR REPLACE FUNCTION public.driver_log_cashing(
   p_expected_cashing_id uuid,
   p_amount_zmw          numeric,
-  p_reference           text -- Required: Airtel Money Transaction ID
+  p_reference           text, -- Required: Airtel Money Transaction ID
+  p_notes               text DEFAULT NULL
 )
 RETURNS void
 LANGUAGE plpgsql
@@ -101,14 +102,16 @@ BEGIN
       'period_end', v_expected_date::text,
       'driver_id', v_driver_id,
       'reference', trim(p_reference),
-      'expected_cashing_id', p_expected_cashing_id
+      'expected_cashing_id', p_expected_cashing_id,
+      'notes', p_notes
     )
   ) RETURNING id INTO v_new_transaction_id;
 
   -- 6. Update the expected cashing record status and link
   UPDATE public.expected_cashings
   SET status = v_status,
-      transaction_id = v_new_transaction_id
+      transaction_id = v_new_transaction_id,
+      notes = p_notes
   WHERE id = p_expected_cashing_id;
 END;
 $$;

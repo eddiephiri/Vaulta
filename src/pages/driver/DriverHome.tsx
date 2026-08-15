@@ -35,6 +35,7 @@ export function DriverHome() {
     const [loggingCashing, setLoggingCashing] = useState<ExpectedCashing | null>(null);
     const [cashingAmount, setCashingAmount] = useState('');
     const [txnId, setTxnId] = useState('');
+    const [cashingNotes, setCashingNotes] = useState('');
     const [submittingCashing, setSubmittingCashing] = useState(false);
     const [cashingError, setCashingError] = useState<string | null>(null);
 
@@ -109,7 +110,8 @@ export function DriverHome() {
             .rpc('driver_log_cashing', {
                 p_expected_cashing_id: loggingCashing.id,
                 p_amount_zmw: amount,
-                p_reference: txnId.trim()
+                p_reference: txnId.trim(),
+                p_notes: cashingNotes.trim() || null
             });
 
         setSubmittingCashing(false);
@@ -120,6 +122,7 @@ export function DriverHome() {
             setLoggingCashing(null);
             setCashingAmount('');
             setTxnId('');
+            setCashingNotes('');
             refetch();
         }
     };
@@ -761,6 +764,30 @@ export function DriverHome() {
                                     placeholder="Enter Txn ID, e.g. AP260805..."
                                     value={txnId}
                                     onChange={e => setTxnId(e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-[11px] mb-1.5 font-bold uppercase tracking-wider" style={{ color: 'var(--ff-text-muted)' }}>
+                                    Reason / Notes <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span>
+                                </label>
+                                <textarea
+                                    rows={2}
+                                    style={{
+                                        background: 'var(--ff-surface)',
+                                        color: 'var(--ff-text-primary)',
+                                        border: '1px solid var(--ff-border)',
+                                        borderRadius: 8,
+                                        padding: '8px 10px',
+                                        fontSize: 13,
+                                        width: '100%',
+                                        outline: 'none',
+                                        resize: 'none',
+                                        boxSizing: 'border-box',
+                                    } as React.CSSProperties}
+                                    placeholder="e.g. Low income week, Yango promo cut earnings…"
+                                    value={cashingNotes}
+                                    onChange={e => setCashingNotes(e.target.value)}
                                 />
                             </div>
 
