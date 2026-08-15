@@ -11,13 +11,13 @@ interface UseOdometerReadingsReturn {
 }
 
 export function useOdometerReadings(vehicleId?: string): UseOdometerReadingsReturn {
-    const { workspace } = useWorkspace();
+    const { activeWorkspaceId } = useWorkspace();
     const [readings, setReadings] = useState<OdometerReading[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchReadings = useCallback(async () => {
-        if (!workspace) { setLoading(false); return; }
+        if (!activeWorkspaceId) { setLoading(false); return; }
         setLoading(true);
         setError(null);
 
@@ -28,7 +28,7 @@ export function useOdometerReadings(vehicleId?: string): UseOdometerReadingsRetu
                 vehicle:vehicles(id, plate, make, model),
                 driver:drivers(id, name)
             `)
-            .eq('workspace_id', workspace.id)
+            .eq('workspace_id', activeWorkspaceId)
             .order('submitted_at', { ascending: false });
 
         if (vehicleId) {
@@ -40,7 +40,7 @@ export function useOdometerReadings(vehicleId?: string): UseOdometerReadingsRetu
         if (err) setError(err.message);
         else setReadings((data ?? []) as OdometerReading[]);
         setLoading(false);
-    }, [workspace, vehicleId]);
+    }, [activeWorkspaceId, vehicleId]);
 
     useEffect(() => { fetchReadings(); }, [fetchReadings]);
 
