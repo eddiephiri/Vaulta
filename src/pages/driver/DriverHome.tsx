@@ -127,16 +127,23 @@ export function DriverHome() {
         }
     };
 
-    // Current/next cashing: prefer the nearest PENDING upcoming row so that an
-    // already-completed entry never hijacks the action card. Fall back to the
-    // nearest future row of any status, then to the most recent past row.
+    // Current/next cashing — priority chain matching the admin stepper:
+    //  1. Oldest overdue pending (date <= today, status=pending) — needs action first.
+    //  2. Next upcoming pending (date > today, status=pending).
+    //  3. Any upcoming row of any status.
+    //  4. Most recent past row as last resort.
     const current = useMemo(() => {
+        const overdueRow = cashings.find(
+            c => c.status === 'pending' && c.expected_date <= today
+        );
+        if (overdueRow) return overdueRow;
+
         const pendingUpcoming = cashings.find(
-            c => c.expected_date >= today && c.status === 'pending'
+            c => c.expected_date > today && c.status === 'pending'
         );
         if (pendingUpcoming) return pendingUpcoming;
 
-        const anyUpcoming = cashings.find(c => c.expected_date >= today);
+        const anyUpcoming = cashings.find(c => c.expected_date > today);
         return anyUpcoming ?? (cashings.length ? cashings[cashings.length - 1] : null);
     }, [cashings, today]);
 

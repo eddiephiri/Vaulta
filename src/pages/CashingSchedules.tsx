@@ -74,24 +74,38 @@ const getCurrentCycleCashings = (vCashings: ExpectedCashing[], cycleWeeks: numbe
     if (!vCashings.length) return [];
     const today = new Date().toISOString().slice(0, 10);
 
-    // Prefer the last resolved (non-pending) cashing as the anchor for the display window.
-    // This correctly shows the cycle the driver is currently IN, even if they paid late,
-    // rather than jumping forward to the next future cashing and mis-marking prior weeks as missed.
-    const lastResolved = [...vCashings].reverse().find(c => c.status !== 'pending');
+    // Priority chain for determining which cashing to centre the cycle window on:
+    //
+    //  1. Oldest overdue pending — the one the admin/driver most needs to act on.
+    //     Anchoring here keeps the stepper focused on the unresolved debt rather
+    //     than jumping forward to a future resolved week.
+    //  2. Next upcoming pending — when there's no overdue, show what's next.
+    //  3. Last resolved (non-pending) — pure fallback when all pending rows are
+    //     in the future or none exist yet.
+    //
+    const overdueIdx = vCashings.findIndex(
+        c => c.status === 'pending' && c.expected_date <= today
+    );
+    const upcomingIdx = vCashings.findIndex(
+        c => c.status === 'pending' && c.expected_date > today
+    );
+    const lastResolvedIdx = (() => {
+        const idx = [...vCashings].map((c, i) => ({ c, i }))
+            .filter(({ c }) => c.status !== 'pending')
+            .pop();
+        return idx ? idx.i : -1;
+    })();
 
-    let anchorIdx: number;
-    if (lastResolved) {
-        anchorIdx = vCashings.indexOf(lastResolved);
-    } else {
-        // No resolved cashings yet — find the next upcoming pending one
-        anchorIdx = vCashings.findIndex(c => c.expected_date >= today);
-        if (anchorIdx === -1) anchorIdx = vCashings.length - 1;
-    }
+    let anchorIdx =
+        overdueIdx !== -1  ? overdueIdx  :
+        upcomingIdx !== -1 ? upcomingIdx :
+        lastResolvedIdx !== -1 ? lastResolvedIdx :
+        vCashings.length - 1;
 
     const anchorCashing = vCashings[anchorIdx];
     const wkNum = anchorCashing.week_number;
 
-    // Start index is anchorIdx - (wkNum - 1)
+    // Walk back (wkNum - 1) positions to reach week 1 of this cycle.
     const startIdx = Math.max(0, anchorIdx - (wkNum - 1));
     return vCashings.slice(startIdx, startIdx + cycleWeeks);
 };
