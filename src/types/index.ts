@@ -129,7 +129,7 @@ export interface CashingSchedule {
     id: string;
     workspace_id: string;
     vehicle_id: string;
-    vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model'>;
+    vehicle?: Pick<Vehicle, 'id' | 'plate' | 'make' | 'model' | 'status'>;
     income_source: IncomeSource;
     cashing_day_of_week?: CashingDayOfWeek | null; // null = no fixed day
     cycle_weeks: number;         // total weeks in cycle (default 4)

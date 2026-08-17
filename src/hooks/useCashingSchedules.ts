@@ -20,8 +20,9 @@ export function useCashingSchedules(vehicleId?: string): UseCashingSchedulesRetu
 
         let query = supabase
             .from('cashing_schedules')
-            .select('*, vehicle:vehicles(id, plate, make, model)')
+            .select('*, vehicle:vehicles!inner(id, plate, make, model, status)')
             .eq('active', true)
+            .eq('vehicle.status', 'active')
             .order('created_at', { ascending: false });
 
         if (vehicleId) query = query.eq('vehicle_id', vehicleId);
