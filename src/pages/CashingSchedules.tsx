@@ -63,7 +63,7 @@ function buildCalendarCells(ym: string): (string | null)[] {
 
 function cashingStatusMeta(c: ExpectedCashing, today: string): { label: string; color: string } {
     if (c.status === 'recorded' || c.status === 'late_admin') return { label: 'Collected', color: '#22c55e' };
-    if (c.status === 'late_driver') return { label: 'Missed', color: '#ef4444' };
+    if (c.status === 'late_driver') return { label: 'Collected (Late)', color: '#f59e0b' };
     if (c.status === 'deferred_to_salary') return { label: 'Deferred to Salary', color: '#a855f7' };
     if (c.expected_date < today) return { label: 'Overdue', color: '#f59e0b' };
     if (c.expected_date === today) return { label: 'Due Today', color: '#3b82f6' };
@@ -151,8 +151,7 @@ export function CashingSchedules() {
     const monthCounts = useMemo(() => {
         const counts = { collected: 0, pending: 0, missed: 0, deferred: 0 };
         monthCashings.forEach(c => {
-            if (c.status === 'recorded' || c.status === 'late_admin') counts.collected++;
-            else if (c.status === 'late_driver') counts.missed++;
+            if (c.status === 'recorded' || c.status === 'late_admin' || c.status === 'late_driver') counts.collected++;
             else if (c.status === 'deferred_to_salary') counts.deferred++;
             else counts.pending++;
         });
@@ -787,10 +786,10 @@ export function CashingSchedules() {
                                                                 textColor = 'white';
                                                                 nodeLabel = '✓';
                                                             } else if (c.status === 'late_driver') {
-                                                                borderColor = '#ef4444';
-                                                                bgColor = '#ef4444';
+                                                                borderColor = '#f59e0b';
+                                                                bgColor = '#f59e0b';
                                                                 textColor = 'white';
-                                                                nodeLabel = '✗';
+                                                                nodeLabel = '✓';
                                                             } else if (c.status === 'deferred_to_salary') {
                                                                 borderColor = '#a855f7';
                                                                 bgColor = '#a855f7';
