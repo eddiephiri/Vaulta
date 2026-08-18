@@ -11,6 +11,7 @@ import { AddCashingScheduleModal } from '../components/AddCashingScheduleModal';
 import { AddIncomeModal } from '../components/AddIncomeModal';
 import { ResolveCashingModal } from '../components/ResolveCashingModal';
 import { SwapWeeksModal } from '../components/SwapWeeksModal';
+import { ParseCashingSmsModal } from '../components/ParseCashingSmsModal';
 import { SearchInput } from '../components/SearchInput';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
@@ -113,6 +114,7 @@ const getCurrentCycleCashings = (vCashings: ExpectedCashing[], cycleWeeks: numbe
 export function CashingSchedules() {
     const { activeWorkspaceId, canEditApp } = useWorkspace();
     const [showModal, setShowModal] = useState(false);
+    const [showParseModal, setShowParseModal] = useState(false);
     const { schedules, loading: schedLoading, error: schedError, refetch } = useCashingSchedules();
     const { cashings, overdue, loading: overdueLoading, refetch: refetchOverdue } = useExpectedCashings();
     const { vehicles } = useVehicles();
@@ -300,14 +302,23 @@ export function CashingSchedules() {
                 title="Cashing Schedules"
                 subtitle="Configure expected cashing rhythms and track overdue payments"
                 action={canEditApp('transport') && (
-                    <button
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-                        style={{ background: 'var(--ff-accent)', color: 'white' }}
-                        onClick={() => setShowModal(true)}
-                    >
-                        <Plus size={16} />
-                        New Schedule
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors"
+                            onClick={() => setShowParseModal(true)}
+                        >
+                            <Banknote size={16} />
+                            Parse SMS
+                        </button>
+                        <button
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                            style={{ background: 'var(--ff-accent)', color: 'white' }}
+                            onClick={() => setShowModal(true)}
+                        >
+                            <Plus size={16} />
+                            New Schedule
+                        </button>
+                    </div>
                 )}
             />
 
@@ -852,6 +863,17 @@ export function CashingSchedules() {
                 onSuccess={refetch}
                 vehicles={vehicles}
                 drivers={drivers}
+            />
+
+            <ParseCashingSmsModal
+                isOpen={showParseModal}
+                onClose={() => setShowParseModal(false)}
+                onSuccess={() => {
+                    refetchOverdue();
+                }}
+                vehicles={vehicles}
+                drivers={drivers}
+                cashings={cashings}
             />
 
             <AddIncomeModal

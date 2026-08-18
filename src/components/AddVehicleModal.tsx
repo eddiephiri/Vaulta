@@ -57,6 +57,7 @@ const BLANK = {
     colorOther: '',
     status: 'active' as VehicleStatus,
     odometer_km: '0',
+    valid_sms_senders: '',
 };
 
 export function AddVehicleModal({ open, onClose, onSuccess, initialData }: AddVehicleModalProps) {
@@ -82,6 +83,7 @@ export function AddVehicleModal({ open, onClose, onSuccess, initialData }: AddVe
                 colorOther: knownColor === 'Other' ? (initialData.color ?? '') : '',
                 status: initialData.status,
                 odometer_km: String(initialData.odometer_km ?? 0),
+                valid_sms_senders: initialData.valid_sms_senders?.join(', ') || '',
             });
         } else {
             setForm(BLANK);
@@ -122,6 +124,9 @@ export function AddVehicleModal({ open, onClose, onSuccess, initialData }: AddVe
             color: resolvedColor || 'Unknown',
             status: form.status,
             odometer_km: parseInt(form.odometer_km, 10) || 0,
+            valid_sms_senders: form.valid_sms_senders
+                ? form.valid_sms_senders.split(',').map(s => s.trim()).filter(Boolean)
+                : [],
         };
 
         const { error: supaErr } = isEdit
@@ -221,6 +226,19 @@ export function AddVehicleModal({ open, onClose, onSuccess, initialData }: AddVe
                             <label style={LABEL_STYLE}>Odometer (km)</label>
                             <input type="number" min="0" style={INPUT_STYLE} placeholder="0" value={form.odometer_km} onChange={set('odometer_km')} />
                         </div>
+                    </div>
+
+                    <div>
+                        <label style={LABEL_STYLE}>Valid SMS Senders (Optional)</label>
+                        <input
+                            style={INPUT_STYLE}
+                            placeholder="e.g. Airtel Money, MTN Mobile Money (comma separated)"
+                            value={form.valid_sms_senders}
+                            onChange={set('valid_sms_senders')}
+                        />
+                        <p style={{ fontSize: 10, color: 'var(--ff-text-muted)', marginTop: 4 }}>
+                            For Yango, the assigned driver's name is automatically used. For buses, list the valid sender names here.
+                        </p>
                     </div>
 
                     <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>

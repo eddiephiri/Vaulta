@@ -43,6 +43,7 @@ export interface Vehicle {
     color: string;
     status: VehicleStatus;
     odometer_km: number;
+    valid_sms_senders?: string[] | null;
     created_at: string;
     updated_at: string;
 }
