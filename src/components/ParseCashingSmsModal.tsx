@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { X, Search, CheckCircle2, AlertCircle, CalendarClock, ChevronRight, Check } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, ChevronRight, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useWorkspace } from '../contexts/WorkspaceContext';
-import { parseSmsMessages, ParsedSms } from '../lib/smsParser';
+import { parseSmsMessages } from '../lib/smsParser';
+import type { ParsedSms } from '../lib/smsParser';
 import type { Vehicle, ExpectedCashing, Driver } from '../types';
 
 interface ParseCashingSmsModalProps {
@@ -48,10 +49,7 @@ export function ParseCashingSmsModal({
             .sort((a, b) => a.expected_date.localeCompare(b.expected_date));
     }, [cashings, selectedVehicleId]);
 
-    // Form state for review step: mapping of parsed SMS index to a target ExpectedCashing ID
     const [selections, setSelections] = useState<Record<number, string>>({});
-    // Conflict resolution: if conflict exists, keep 'system' or 'sms'
-    const [resolutions, setResolutions] = useState<Record<number, 'system' | 'sms'>>({});
 
     const handleParse = () => {
         const results = parseSmsMessages(smsText);
@@ -76,7 +74,7 @@ export function ParseCashingSmsModal({
         
         // Auto-select pending cashings (oldest first)
         const initialSelections: Record<number, string> = {};
-        validated.forEach((res, i) => {
+        validated.forEach((_, i) => {
             if (pendingCashings[i]) {
                 initialSelections[i] = pendingCashings[i].id;
             }
@@ -212,7 +210,7 @@ export function ParseCashingSmsModal({
                                                 {res.isValidSender ? (
                                                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                                 ) : (
-                                                    <AlertCircle className="w-4 h-4 text-amber-500" title="Unrecognized sender" />
+                                                    <AlertCircle className="w-4 h-4 text-amber-500" />
                                                 )}
                                             </div>
                                         </div>
