@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { CalendarClock, Banknote, CheckCircle2, Clock, AlertTriangle, Calendar, CornerDownRight, MessageSquare, Phone, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useDriver } from '../../contexts/DriverContext';
@@ -89,8 +89,10 @@ export function DriverHome() {
         }
     };
 
+    const isSubmittingCashingRef = useRef(false);
+
     const handleSubmitCashing = async () => {
-        if (!driver || !loggingCashing) return;
+        if (!driver || !loggingCashing || isSubmittingCashingRef.current || submittingCashing) return;
 
         const amount = Number(cashingAmount);
         if (isNaN(amount) || amount <= 0 || amount > 999999.99) {
@@ -103,27 +105,31 @@ export function DriverHome() {
             return;
         }
 
+        isSubmittingCashingRef.current = true;
         setSubmittingCashing(true);
         setCashingError(null);
 
-        const { error: supaErr } = await supabase
-            .rpc('driver_log_cashing', {
-                p_expected_cashing_id: loggingCashing.id,
-                p_amount_zmw: amount,
-                p_reference: txnId.trim(),
-                p_notes: cashingNotes.trim() || null
-            });
+        try {
+            const { error: supaErr } = await supabase
+                .rpc('driver_log_cashing', {
+                    p_expected_cashing_id: loggingCashing.id,
+                    p_amount_zmw: amount,
+                    p_reference: txnId.trim(),
+                    p_notes: cashingNotes.trim() || null
+                });
 
-        setSubmittingCashing(false);
-
-        if (supaErr) {
-            setCashingError(supaErr.message);
-        } else {
-            setLoggingCashing(null);
-            setCashingAmount('');
-            setTxnId('');
-            setCashingNotes('');
-            refetch();
+            if (supaErr) {
+                setCashingError(supaErr.message);
+            } else {
+                setLoggingCashing(null);
+                setCashingAmount('');
+                setTxnId('');
+                setCashingNotes('');
+                refetch();
+            }
+        } finally {
+            isSubmittingCashingRef.current = false;
+            setSubmittingCashing(false);
         }
     };
 

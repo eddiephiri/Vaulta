@@ -1,12 +1,53 @@
 -- =============================================================================
--- Vaulta Driver Portal — Cashing Submission RPC
--- Run in Supabase SQL Editor AFTER modular_erp_phase2_ledger_migration.sql
---
--- Enables drivers to log their own cashings securely.
--- Bypasses general transactions table write restrictions by checking ownership
--- of the expected cashing row and executing as SECURITY DEFINER.
+-- Migration: Deduplicate Cashing Transaction, Fix Status, and Harden RPC
+-- Date: 2026-09-07
 -- =============================================================================
 
+-- 1. Deduplicate the duplicate cashing transaction PP260902.2311.X39854
+DO $$
+DECLARE
+  v_kept_id uuid;
+  v_cashing_id uuid;
+BEGIN
+  -- Find the vehicle BAZ 8243
+  SELECT ec.id INTO v_cashing_id
+  FROM public.expected_cashings ec
+  JOIN public.vehicles v ON v.id = ec.vehicle_id
+  WHERE v.plate ILIKE '%8243%'
+    AND ec.expected_date = '2026-09-02';
+
+  -- Select the first transaction with this reference to keep
+  SELECT id INTO v_kept_id
+  FROM public.transactions
+  WHERE metadata->>'reference' ILIKE '%PP260902.2311.X39854%'
+  ORDER BY created_at ASC
+  LIMIT 1;
+
+  IF v_kept_id IS NOT NULL THEN
+    -- Delete any other duplicate transactions with this reference
+    DELETE FROM public.transactions
+    WHERE metadata->>'reference' ILIKE '%PP260902.2311.X39854%'
+      AND id <> v_kept_id;
+
+    -- Update the kept transaction's date to the actual cashing date: 2026-09-02
+    UPDATE public.transactions
+    SET date = '2026-09-02'
+    WHERE id = v_kept_id;
+
+    -- Update the expected_cashing row to 'recorded' (on time) and link to kept transaction
+    IF v_cashing_id IS NOT NULL THEN
+      UPDATE public.expected_cashings
+      SET status = 'recorded',
+          transaction_id = v_kept_id
+      WHERE id = v_cashing_id;
+    END IF;
+  END IF;
+END $$;
+
+-- 2. Harden driver_log_cashing RPC:
+--    - Uses SELECT ... FOR UPDATE to prevent race conditions & double submissions
+--    - Rejects duplicate reference codes
+--    - Uses expected_date if submitted within 24h grace window (so late-night/next-morning submissions are on-time)
 CREATE OR REPLACE FUNCTION public.driver_log_cashing(
   p_expected_cashing_id uuid,
   p_amount_zmw          numeric,
@@ -28,13 +69,20 @@ DECLARE
   v_driver_id          uuid;
   v_new_transaction_id uuid;
   v_status             text;
+  v_txn_date           date;
+  v_clean_ref          text;
 BEGIN
   -- 1. Validate inputs
-  IF p_reference IS NULL OR trim(p_reference) = '' THEN
+  v_clean_ref := trim(p_reference);
+  IF v_clean_ref IS NULL OR v_clean_ref = '' THEN
     RAISE EXCEPTION 'Airtel Money Transaction ID is required.';
   END IF;
 
-  -- 2. Fetch expected cashing and verify ownership
+  IF p_amount_zmw IS NULL OR p_amount_zmw <= 0 THEN
+    RAISE EXCEPTION 'Enter a valid cashing amount.';
+  END IF;
+
+  -- 2. Fetch expected cashing with row-level lock (FOR UPDATE) to prevent race conditions
   SELECT 
     ec.expected_date,
     ec.vehicle_id,
@@ -74,16 +122,20 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM public.transactions
     WHERE workspace_id = v_workspace_id
-      AND metadata->>'reference' = trim(p_reference)
+      AND metadata->>'reference' = v_clean_ref
   ) THEN
     RAISE EXCEPTION 'A transaction with this Reference ID has already been recorded.';
   END IF;
 
   -- 5. Determine on-time vs late status with a 1-day grace period
+  -- If submitted on expected_date or the following day (e.g. Wednesday night cash logged Thursday morning),
+  -- record transaction date as the expected cashing date and mark as on-time 'recorded'.
   IF CURRENT_DATE <= (v_expected_date + 1) THEN
     v_status := 'recorded';
+    v_txn_date := v_expected_date;
   ELSE
     v_status := 'late_driver';
+    v_txn_date := CURRENT_DATE;
   END IF;
 
   -- 6. Create the unified ledger transaction
@@ -102,7 +154,7 @@ BEGIN
     'transport',
     'income',
     p_amount_zmw,
-    v_expected_date,
+    v_txn_date,
     'Driver-submitted cashing',
     v_vehicle_id,
     auth.uid(),
@@ -111,9 +163,9 @@ BEGIN
       'period_start', (v_expected_date - 6)::text,
       'period_end', v_expected_date::text,
       'driver_id', v_driver_id,
-      'reference', trim(p_reference),
-      'expected_cashing_id', p_expected_cashing_id,
-      'notes', trim(p_notes)
+      'reference', v_clean_ref,
+      'notes', trim(p_notes),
+      'expected_cashing_id', p_expected_cashing_id
     )
   ) RETURNING id INTO v_new_transaction_id;
 

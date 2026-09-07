@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { Vehicle, IncomeSource, Driver, IncomeRecord, CashingSchedule } from '../types';
@@ -69,6 +69,7 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
     });
     const [lateReason, setLateReason] = useState<LateReason>('none');
     const [submitting, setSubmitting] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -206,6 +207,53 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
         onClose();
     };
 
+    const handleDelete = async () => {
+        if (!initialData) return;
+        if (!window.confirm(`Are you sure you want to delete this income record of ZMW ${initialData.amount_zmw}?`)) {
+            return;
+        }
+        setDeleting(true);
+        setError(null);
+
+        const cashingId = initialData.metadata?.expected_cashing_id;
+
+        const { error: delErr } = await supabase
+            .from('transactions')
+            .delete()
+            .eq('id', initialData.id);
+
+        if (delErr) {
+            setError(delErr.message);
+            setDeleting(false);
+            return;
+        }
+
+        // If linked to an expected cashing, check if another transaction still references it
+        if (cashingId) {
+            const { data: remainingTx } = await supabase
+                .from('transactions')
+                .select('id')
+                .eq('metadata->>expected_cashing_id', cashingId)
+                .limit(1);
+
+            if (remainingTx && remainingTx.length > 0) {
+                await supabase
+                    .from('expected_cashings')
+                    .update({ transaction_id: remainingTx[0].id })
+                    .eq('id', cashingId);
+            } else {
+                await supabase
+                    .from('expected_cashings')
+                    .update({ status: 'pending', transaction_id: null })
+                    .eq('id', cashingId);
+            }
+        }
+
+        setDeleting(false);
+        onSuccess();
+        onClose();
+    };
+
     const isSalaryWeek = prefill?.is_salary_week ?? false;
     const isFromReminder = !!prefill?.expected_cashing_id;
 
@@ -333,15 +381,41 @@ export function AddIncomeModal({ open, onClose, onSuccess, vehicles, drivers = [
                     </div>
 
                     <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                        {isEdit && (
+                            <button
+                                type="button"
+                                onClick={handleDelete}
+                                disabled={deleting || submitting}
+                                style={{
+                                    padding: '10px 14px',
+                                    borderRadius: 8,
+                                    fontSize: 14,
+                                    fontWeight: 600,
+                                    background: '#ef444415',
+                                    color: '#ef4444',
+                                    border: '1px solid #ef444440',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                }}
+                                title="Delete this income record"
+                            >
+                                <Trash2 size={16} />
+                                {deleting ? 'Deleting…' : 'Delete'}
+                            </button>
+                        )}
                         <button type="button" onClick={onClose} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
                             background: 'var(--ff-surface)', color: 'var(--ff-text-muted)',
                             border: '1px solid var(--ff-border)',
+                            cursor: 'pointer',
                         }}>Cancel</button>
-                        <button type="submit" disabled={submitting} style={{
+                        <button type="submit" disabled={submitting || deleting} style={{
                             flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 14,
-                            fontWeight: 600, background: submitting ? '#334155' : '#22c55e',
+                            fontWeight: 600, background: submitting || deleting ? '#334155' : '#22c55e',
                             color: 'white', border: 'none',
+                            cursor: 'pointer',
                         }}>{submitting ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Income'}</button>
                     </div>
                 </form>

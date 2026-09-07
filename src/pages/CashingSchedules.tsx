@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, CalendarClock, RefreshCw, ArrowLeftRight, Banknote, ChevronLeft, ChevronRight, CheckCircle2, Check, List, Grid3x3 } from 'lucide-react';
+import { Plus, CalendarClock, RefreshCw, ArrowLeftRight, Banknote, ChevronLeft, ChevronRight, CheckCircle2, Check, List, Grid3x3, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/PageHeader';
 import { useCashingSchedules } from '../hooks/useCashingSchedules';
@@ -64,7 +64,7 @@ function buildCalendarCells(ym: string): (string | null)[] {
 
 function cashingStatusMeta(c: ExpectedCashing, today: string): { label: string; color: string } {
     if (c.status === 'recorded' || c.status === 'late_admin') return { label: 'Collected', color: '#22c55e' };
-    if (c.status === 'late_driver') return { label: 'Collected (Late)', color: '#f59e0b' };
+    if (c.status === 'late_driver') return { label: 'Collected (Late)', color: '#22c55e' };
     if (c.status === 'deferred_to_salary') return { label: 'Deferred to Salary', color: '#a855f7' };
     if (c.expected_date < today) return { label: 'Overdue', color: '#f59e0b' };
     if (c.expected_date === today) return { label: 'Due Today', color: '#3b82f6' };
@@ -243,7 +243,6 @@ export function CashingSchedules() {
     const renderCashingRow = (c: ExpectedCashing) => {
         const today = new Date().toISOString().slice(0, 10);
         const meta = cashingStatusMeta(c, today);
-        const isActionable = canEditApp('transport') && c.status === 'pending';
         return (
             <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg"
                 style={{ background: 'var(--ff-bg)', border: '1px solid var(--ff-border)' }}>
@@ -267,26 +266,28 @@ export function CashingSchedules() {
                         Expected {c.expected_date} · Week {c.week_number}
                     </p>
                 </div>
-                {isActionable ? (
+                {canEditApp('transport') ? (
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setIncomePrefill({
-                                vehicle_id: c.vehicle_id,
-                                expected_cashing_id: c.id,
-                                expected_date: c.expected_date,
-                                is_salary_week: c.is_salary_week,
-                            })}
-                            className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
-                            style={{ background: 'var(--ff-green)', color: 'white' }}
-                        >
-                            Log Income
-                        </button>
+                        {c.status === 'pending' ? (
+                            <button
+                                onClick={() => setIncomePrefill({
+                                    vehicle_id: c.vehicle_id,
+                                    expected_cashing_id: c.id,
+                                    expected_date: c.expected_date,
+                                    is_salary_week: c.is_salary_week,
+                                })}
+                                className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
+                                style={{ background: 'var(--ff-green)', color: 'white' }}
+                            >
+                                Log Income
+                            </button>
+                        ) : null}
                         <button
                             onClick={() => setResolvingCashing(c)}
                             className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors hover:opacity-80"
                             style={{ background: 'var(--ff-surface)', color: 'var(--ff-text-primary)', border: '1px solid var(--ff-border)' }}
                         >
-                            Resolve Manually
+                            {c.status === 'pending' ? 'Resolve Manually' : 'Update Record'}
                         </button>
                     </div>
                 ) : (
@@ -646,6 +647,7 @@ export function CashingSchedules() {
                             <span className="flex items-center gap-1.5"><span className="rounded-full" style={{ width: 6, height: 6, background: '#f59e0b' }} /> Overdue</span>
                             <span className="flex items-center gap-1.5"><span className="rounded-full" style={{ width: 6, height: 6, background: '#ef4444' }} /> Missed</span>
                             <span className="flex items-center gap-1.5"><span className="rounded-full" style={{ width: 6, height: 6, background: '#22c55e' }} /> Collected</span>
+                            <span className="flex items-center gap-1.5"><span className="rounded-full ring-1 ring-amber-500" style={{ width: 6, height: 6, background: '#22c55e' }} /> Collected (Late)</span>
                             <span className="flex items-center gap-1.5"><span className="rounded-full" style={{ width: 6, height: 6, background: '#a855f7' }} /> Deferred</span>
                             <span className="flex items-center gap-1.5"><Check size={10} strokeWidth={3} style={{ color: '#22c55e' }} /> Actually cashed</span>
                         </div>
@@ -790,6 +792,7 @@ export function CashingSchedules() {
                                                             let bgColor = 'var(--ff-surface)';
                                                             let textColor = 'var(--ff-text-muted)';
                                                             let nodeLabel = String(c.week_number);
+                                                            let isLateDriver = false;
 
                                                             if (c.status === 'recorded' || c.status === 'late_admin') {
                                                                 borderColor = '#22c55e';
@@ -797,10 +800,12 @@ export function CashingSchedules() {
                                                                 textColor = 'white';
                                                                 nodeLabel = '✓';
                                                             } else if (c.status === 'late_driver') {
+                                                                // Collected, but late by driver — primary green checkmark with amber accent
                                                                 borderColor = '#f59e0b';
-                                                                bgColor = '#f59e0b';
+                                                                bgColor = '#22c55e';
                                                                 textColor = 'white';
                                                                 nodeLabel = '✓';
+                                                                isLateDriver = true;
                                                             } else if (c.status === 'deferred_to_salary') {
                                                                 borderColor = '#a855f7';
                                                                 bgColor = '#a855f7';
@@ -817,10 +822,22 @@ export function CashingSchedules() {
                                                             }
 
                                                             const formattedDate = new Date(c.expected_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                                                            const statusTooltip =
+                                                                c.status === 'recorded' ? 'Collected (On Time)' :
+                                                                c.status === 'late_driver' ? 'Collected (Late by Driver)' :
+                                                                c.status === 'late_admin' ? 'Collected (Late by Admin)' :
+                                                                c.status === 'deferred_to_salary' ? 'Deferred to Salary Week' :
+                                                                isOverdue ? 'Overdue Pending' :
+                                                                isToday ? 'Due Today' : 'Upcoming';
 
                                                             return (
-                                                                <div key={c.id} className="flex flex-col items-center gap-1 z-10 relative group" title={`${isSalary ? 'Salary Week • ' : ''}Expected ${c.expected_date} [Status: ${c.status}]`}>
-                                                                    <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] border-2 shadow-sm transition-transform cursor-help"
+                                                                <div
+                                                                    key={c.id}
+                                                                    onClick={() => canEditApp('transport') && setResolvingCashing(c)}
+                                                                    className={`flex flex-col items-center gap-1 z-10 relative group ${canEditApp('transport') ? 'cursor-pointer hover:scale-110' : 'cursor-help'} transition-transform`}
+                                                                    title={`${isSalary ? 'Salary Week • ' : ''}Expected ${c.expected_date} [${statusTooltip}]${canEditApp('transport') ? ' • Click to view/edit' : ''}`}
+                                                                >
+                                                                    <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] border-2 shadow-sm transition-transform relative"
                                                                         style={{
                                                                             borderColor,
                                                                             background: bgColor,
@@ -830,6 +847,11 @@ export function CashingSchedules() {
                                                                         {isSalary && (
                                                                             <span className="absolute -top-2 -right-1.5 bg-purple-600 text-white rounded-full p-0.5 shadow-sm">
                                                                                 <Banknote size={8} />
+                                                                            </span>
+                                                                        )}
+                                                                        {isLateDriver && (
+                                                                            <span className="absolute -bottom-1 -right-1.5 bg-amber-500 text-white rounded-full p-0.5 shadow-sm" title="Collected late">
+                                                                                <Clock size={8} />
                                                                             </span>
                                                                         )}
                                                                     </div>
