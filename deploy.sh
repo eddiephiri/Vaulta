@@ -22,6 +22,7 @@ echo "[3/3] Starting container..."
 docker compose up -d
 
 echo ""
-echo "✔  FleetFlow is running on http://$(hostname -I | awk '{print $1}')"
+echo "✔  FleetFlow is running at https://pms.mongasapartments.com"
+echo "   (Direct IP: http://$(hostname -I | awk '{print $1}'))"
 echo "    To view logs:  docker compose logs -f"
 echo "    To stop:       docker compose down"

@@ -129,3 +129,41 @@ npm run preview    # Preview production build locally
 npm run lint       # Run ESLint
 npx tsc --noEmit   # Type-check without emitting files
 ```
+
+---
+
+## 7 — VPS Deployment & SSL (`pms.mongasapartments.com`)
+
+### Step 1: DNS Setup
+In your domain DNS management (e.g. Cloudflare, Namecheap, GoDaddy):
+- Add an **A record**:
+  - **Host / Name**: `pms`
+  - **Points to**: `<YOUR_VPS_PUBLIC_IP>`
+  - **TTL**: Auto / 300 seconds
+  - *(If using Cloudflare proxy, set SSL mode to "Full (strict)")*
+
+### Step 2: VPS Firewall
+Ensure inbound traffic on ports **80** (HTTP) and **443** (HTTPS) is allowed:
+```bash
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+```
+
+### Step 3: Deploy
+
+**Option A — Caddy (Default, zero-configuration SSL):**
+The repository includes a preconfigured `Caddyfile` and `docker-compose.yml`. Caddy automatically requests, provisions, and renews Let's Encrypt / ZeroSSL TLS certificates with automatic HTTP-to-HTTPS redirect.
+```bash
+# On your VPS in the project directory:
+bash deploy.sh
+# Or manually:
+docker compose up -d --build
+```
+
+**Option B — Traefik:**
+If you prefer Traefik, use the included `docker-compose.traefik.yml`:
+```bash
+docker compose -f docker-compose.traefik.yml up -d --build
+```
+Or, if you already have an external Traefik instance running on your VPS, `docker-compose.yml` already contains the standard Traefik container labels on `fleetflow`.
+
