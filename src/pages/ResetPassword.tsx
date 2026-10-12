@@ -1,16 +1,26 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export function ResetPassword() {
-    const { updatePassword } = useAuth();
+    const { updatePassword, signOut } = useAuth();
     const navigate = useNavigate();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+
+    const handleCancel = async () => {
+        setCancelling(true);
+        try {
+            await signOut();
+        } finally {
+            navigate('/', { replace: true });
+        }
+    };
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -44,8 +54,9 @@ export function ResetPassword() {
             setError(updateErr.message || 'Failed to update password.');
         } else {
             setSuccess(true);
-            setTimeout(() => {
-                navigate('/');
+            setTimeout(async () => {
+                await signOut();
+                navigate('/', { replace: true });
             }, 2000);
         }
     };
@@ -187,9 +198,22 @@ export function ResetPassword() {
 
                     {!success && (
                         <div style={{ marginTop: 24, textAlign: 'center' }}>
-                            <Link to="/" style={{ color: 'var(--ff-text-muted)', fontSize: 14, textDecoration: 'none' }}>
-                                Cancel
-                            </Link>
+                            <button
+                                type="button"
+                                onClick={handleCancel}
+                                disabled={loading || cancelling}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--ff-text-muted)',
+                                    fontSize: 14,
+                                    cursor: (loading || cancelling) ? 'not-allowed' : 'pointer',
+                                    padding: 0,
+                                    textDecoration: 'none',
+                                }}
+                            >
+                                {cancelling ? 'Cancelling…' : 'Cancel'}
+                            </button>
                         </div>
                     )}
                 </div>
