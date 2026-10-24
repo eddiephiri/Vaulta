@@ -1,0 +1,6 @@
+# Local access without the production Caddy/domain configuration:
+# docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build fleetflow
+services:
+  fleetflow:
+    ports:
+      - "127.0.0.1:8080:80"

@@ -256,6 +256,7 @@ export function Drivers() {
                 onClose={handleClose}
                 onSuccess={refetch}
                 vehicles={vehicles}
+                drivers={drivers}
                 initialData={editing ?? undefined}
             />
 

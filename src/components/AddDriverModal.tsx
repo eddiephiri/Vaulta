@@ -9,6 +9,7 @@ interface Props {
     onClose: () => void;
     onSuccess: () => void;
     vehicles: Vehicle[];
+    drivers: Driver[];
     initialData?: Driver;
 }
 
@@ -23,7 +24,7 @@ const INITIAL = {
     active: true,
 };
 
-export function AddDriverModal({ open, onClose, onSuccess, vehicles, initialData }: Props) {
+export function AddDriverModal({ open, onClose, onSuccess, vehicles, drivers, initialData }: Props) {
     const isEdit = !!initialData;
     const { activeWorkspaceId } = useWorkspace();
 
@@ -69,6 +70,21 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles, initialData
         setSaving(true);
         setError(null);
 
+        // Refresh ownership at save time; the dropdown may have become stale.
+        if (form.vehicle_id) {
+            let assignmentQuery = supabase.from('drivers')
+                .select('id, name').eq('vehicle_id', form.vehicle_id);
+            if (initialData) assignmentQuery = assignmentQuery.neq('id', initialData.id);
+            const { data: assigned, error: assignmentError } = await assignmentQuery.limit(1);
+            if (assignmentError || assigned?.length) {
+                setError(assignmentError
+                    ? 'Could not verify vehicle availability. Please try again.'
+                    : `This vehicle is already assigned to ${assigned![0].name}. Unassign it from that driver first.`);
+                setSaving(false);
+                return;
+            }
+        }
+
         const payload = {
             name: form.name.trim(),
             phone: form.phone.trim() || null,
@@ -85,7 +101,9 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles, initialData
             : await supabase.from('drivers').insert({ ...payload, workspace_id: activeWorkspaceId });
 
         if (supaErr) {
-            setError(supaErr.message);
+            setError(supaErr.code === '23505' && supaErr.message.includes('drivers_vehicle_id_unique')
+                ? 'This vehicle was assigned to another driver. Refresh the driver list and choose an available vehicle.'
+                : supaErr.message);
         } else {
             if (!isEdit) setForm(INITIAL);
             onSuccess();
@@ -171,12 +189,18 @@ export function AddDriverModal({ open, onClose, onSuccess, vehicles, initialData
                             onChange={e => set('vehicle_id', e.target.value)}
                         >
                             <option value="">— No vehicle assigned —</option>
-                            {vehicles.map(v => (
-                                <option key={v.id} value={v.id}>
-                                    {v.plate} — {v.make} {v.model}
-                                </option>
-                            ))}
+                            {vehicles.map(v => {
+                                const owner = drivers.find(d => d.vehicle_id === v.id && d.id !== initialData?.id);
+                                return (
+                                    <option key={v.id} value={v.id} disabled={!!owner}>
+                                        {v.plate} — {v.make} {v.model}{owner ? ` (Assigned to ${owner.name})` : ''}
+                                    </option>
+                                );
+                            })}
                         </select>
+                        <p className="text-xs mt-1" style={{ color: 'var(--ff-text-muted)' }}>
+                            One driver per vehicle. Unassign a vehicle from its current driver before transferring it, including inactive drivers.
+                        </p>
                     </div>
 
                     <div>

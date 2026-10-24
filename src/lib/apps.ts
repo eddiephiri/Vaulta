@@ -9,6 +9,7 @@ export interface NavItem {
     to: string;
     icon: any; // Lucide icon component
     label: string;
+    group?: string;
 }
 
 export interface AppModule {
@@ -28,17 +29,17 @@ export const APPS: Record<string, AppModule> = {
         icon: Car,
         color: '#3b82f6', // blue
         navItems: [
-            { to: '/transport/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { to: '/transport/vehicles', icon: Car, label: 'Vehicles' },
-            { to: '/transport/service-history', icon: Wrench, label: 'Service History' },
-            { to: '/transport/tyre-changes', icon: CircleDot, label: 'Tyre Changes' },
-            { to: '/transport/licensing', icon: FileCheck2, label: 'Licensing' },
-            { to: '/transport/income', icon: TrendingUp, label: 'Income' },
-            { to: '/transport/expenses', icon: Receipt, label: 'Expenses' },
-            { to: '/transport/drivers', icon: Users, label: 'Drivers' },
-            { to: '/transport/cashing-schedules', icon: CalendarClock, label: 'Schedules' },
-            { to: '/transport/reports', icon: BarChart3, label: 'Reports' },
-            { to: '/transport/wishlist', icon: Gift, label: 'Wishlist' },
+            { to: '/transport/dashboard', icon: LayoutDashboard, label: 'Dashboard', group: 'Overview' },
+            { to: '/transport/reports', icon: BarChart3, label: 'Reports', group: 'Overview' },
+            { to: '/transport/vehicles', icon: Car, label: 'Vehicles', group: 'Fleet' },
+            { to: '/transport/service-history', icon: Wrench, label: 'Service History', group: 'Fleet' },
+            { to: '/transport/tyre-changes', icon: CircleDot, label: 'Tyre Changes', group: 'Fleet' },
+            { to: '/transport/licensing', icon: FileCheck2, label: 'Licensing', group: 'Fleet' },
+            { to: '/transport/wishlist', icon: Gift, label: 'Wishlist', group: 'Fleet' },
+            { to: '/transport/cashing-schedules', icon: CalendarClock, label: 'Cashing Schedules', group: 'Money & Drivers' },
+            { to: '/transport/income', icon: TrendingUp, label: 'Income', group: 'Money & Drivers' },
+            { to: '/transport/expenses', icon: Receipt, label: 'Expenses', group: 'Money & Drivers' },
+            { to: '/transport/drivers', icon: Users, label: 'Drivers', group: 'Money & Drivers' },
         ],
     },
     budget: {
