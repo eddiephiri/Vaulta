@@ -18,6 +18,7 @@ import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { Settings } from './pages/Settings';
+import { ActivityLog } from './pages/ActivityLog';
 import { useAuth } from './hooks/useAuth';
 import { useSessionSecurity } from './hooks/useSessionSecurity';
 import { BudgetDashboard } from './pages/budget/BudgetDashboard';
@@ -124,6 +125,7 @@ export default function App() {
                 <Route index element={<AppLauncher />} />
                 <Route path="join" element={<JoinWorkspace />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="settings/activity" element={<ActivityLog />} />
                 
                 <Route path="transport" element={<Layout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />

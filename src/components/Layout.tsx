@@ -6,6 +6,7 @@ import {
     Settings as SettingsIcon,
     Menu,
     X,
+    History,
 } from 'lucide-react';
 import { Fragment, useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
@@ -25,7 +26,7 @@ export function Layout() {
     const { signOut } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
-    const { isGuest, authorizedApps } = useWorkspace();
+    const { isGuest, authorizedApps, userRole } = useWorkspace();
     const isMobile = useMediaQuery(MOBILE);
 
     const app = getAppByPath(location.pathname);
@@ -124,6 +125,14 @@ export function Layout() {
 
             {/* Profile actions + Sign out */}
             <div className="border-t pt-3 pb-3" style={{ borderColor: 'var(--ff-border)' }}>
+                {(userRole === 'owner' || userRole === 'admin') && (
+                    <NavLink to="/settings/activity" aria-label="Activity Log" title="Activity Log"
+                        className="flex items-center gap-3 mx-2 mb-1 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-500/10"
+                        style={{ color: 'var(--ff-text-muted)' }}>
+                        <History size={18} className="shrink-0" />
+                        {(!collapsed || isMobile) && <span>Activity Log</span>}
+                    </NavLink>
+                )}
                 {!isGuest && (
                     <NavLink
                         to={app?.id === 'budget' ? '/budget/settings' : `/settings?from=${app?.id || 'transport'}`}

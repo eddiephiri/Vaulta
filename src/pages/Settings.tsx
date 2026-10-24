@@ -26,7 +26,7 @@ export function Settings() {
     };
 
     const { updatePassword } = useAuth();
-    const { activeWorkspaceId } = useWorkspace();
+    const { activeWorkspaceId, userRole } = useWorkspace();
     const { theme, setTheme } = useTheme();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -135,6 +135,9 @@ export function Settings() {
                         <h1 className="text-lg font-bold tracking-tight" style={{ color: 'var(--ff-text-primary)' }}>
                             Workspace & Account Settings
                         </h1>
+                        {(userRole === 'owner' || userRole === 'admin') && <button
+                            onClick={() => navigate('/settings/activity')}
+                            className="text-sm underline mt-2">View Activity Log</button>}
                         <p className="text-xs" style={{ color: 'var(--ff-text-muted)' }}>
                             Manage workspace name, members, security, and preferences.
                         </p>

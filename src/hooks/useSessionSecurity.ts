@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { isDriverDevice } from '../lib/driverAuth';
+import { reportAuthActivity } from '../lib/activity';
 import type { AuthSession } from '@supabase/supabase-js';
 
 const DEFAULT_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
@@ -38,6 +39,8 @@ export function useSessionSecurity(session: AuthSession | null, timeoutMs: numbe
   const handleSignOut = async (reason: string) => {
     console.log(`[Auth] Signing out. Reason: ${reason}`);
     clearTimers();
+    await reportAuthActivity('session_ended', reason.includes('another device') ? 'another_device'
+      : reason.includes('across tabs') ? 'session_expired' : 'idle_timeout');
     await supabase.auth.signOut();
     // Send drivers back to their own login, not the admin one.
     window.location.href = isDriverDevice() ? '/driver' : '/login';

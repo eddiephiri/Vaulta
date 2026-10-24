@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { reportAuthActivity } from '../lib/activity';
 import type { AuthSession, User } from '@supabase/supabase-js';
 
 export interface AuthContextType {
@@ -31,6 +32,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
             setSession(newSession);
             setAuthEvent(event);
+            if (event === 'SIGNED_IN' && newSession) {
+                // Run after the auth callback releases its internal lock.
+                window.setTimeout(() => { void reportAuthActivity('signed_in'); }, 0);
+            }
         });
 
         return () => subscription.unsubscribe();
@@ -46,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const signOut = async () => {
+        await reportAuthActivity('signed_out');
         await supabase.auth.signOut();
     };
 
